@@ -152,9 +152,7 @@
     border:1.5px solid var(--line);
     border-radius:7px;
     padding:12px;
-    font-size:18px;
-    text-align:center;
-    letter-spacing:.3em;
+    font-size:15px;
     font-family:var(--font-body);
   }
   .pin-form input:focus{
@@ -523,9 +521,10 @@
     <p class="lock-sub">I. Comercial Alberto Valenzuela Llanos — San Fernando</p>
     <button class="btn btn-gold" id="intranetBtn" type="button">🔒 Intranet</button>
     <form id="pinForm" class="pin-form" style="display:none;">
-      <label for="pinInput">Ingrese PIN para entrar a los registros</label>
-      <input type="password" inputmode="numeric" autocomplete="off" id="pinInput" placeholder="••••" maxlength="6">
-      <p class="pin-error" id="pinError" style="display:none;">PIN incorrecto. Intente nuevamente.</p>
+      <label for="pinInput">Ingrese sus credenciales para entrar a los registros</label>
+      <input type="text" autocomplete="username" id="pinInput" placeholder="Usuario">
+      <input type="password" autocomplete="current-password" id="pinPassword" placeholder="Contraseña" aria-label="Contraseña">
+      <p class="pin-error" id="pinError" style="display:none;">Usuario o contraseña incorrectos.</p>
       <div class="pin-actions">
         <button type="button" class="btn btn-ghost" id="pinCancelBtn">Cancelar</button>
         <button type="submit" class="btn btn-primary">Ingresar</button>
@@ -786,7 +785,9 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import {
+    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
     getFirestore, collection, addDoc, deleteDoc, doc,
     onSnapshot, query, orderBy, serverTimestamp
@@ -805,10 +806,23 @@
   };
   const FIREBASE_CONFIGURED = !firebaseConfig.apiKey.startsWith('PEGA_AQUI');
 
+  // ---------- Directorio de usuarios ----------
+  // Cada persona debe existir como usuario real en Firebase Authentication
+  // (Authentication ▸ Users ▸ Agregar usuario), con el correo indicado aquí
+  // y una contraseña propia que solo ella conoce (mínimo 6 caracteres).
+  // Este mapa NO contiene contraseñas: solo asocia un nombre de usuario
+  // corto con el correo real usado para iniciar sesión, y con el nombre
+  // completo que se muestra en pantalla.
+  const USER_DIRECTORY = {
+    'luis':    { email: 'luis.cadiz@incosafintranet.cl',      nombre: 'Luis Ramón Cádiz Fuenzalida' },
+    'claudio': { email: 'claudio.valenzuela@incosafintranet.cl', nombre: 'Claudio Matías Valenzuela Fuentes' }
+  };
+
   let records = [];
   let auditLog = [];
   let currentUserName = null;
   let db = null;
+  let auth = null;
 
   async function initFirebase(){
     if(!FIREBASE_CONFIGURED){
@@ -823,7 +837,7 @@
     }
     const app = initializeApp(firebaseConfig);
     db = getFirestore(app);
-    await signInAnonymously(getAuth(app));
+    auth = getAuth(app);
     return true;
   }
 
@@ -1344,38 +1358,41 @@
   document.getElementById('printCursoBtn').addEventListener('click', ()=>window.print());
   document.getElementById('printEstBtn').addEventListener('click', ()=>window.print());
 
-  // ---------- Acceso Intranet (PIN) ----------
-  const PIN_USERS = {
-    '1001': 'Luis Ramón Cádiz Fuenzalida',
-    '1002': 'Claudio Matías Valenzuela Fuentes'
-  };
-  const SESSION_KEY = 'suspensiones:session';
-
+  // ---------- Acceso Intranet (usuario / contraseña reales) ----------
   const lockScreen = document.getElementById('lockScreen');
   const appContent = document.getElementById('appContent');
   const intranetBtn = document.getElementById('intranetBtn');
   const pinForm = document.getElementById('pinForm');
   const pinInput = document.getElementById('pinInput');
+  const pinPasswordInput = document.getElementById('pinPassword');
   const pinError = document.getElementById('pinError');
   const pinCancelBtn = document.getElementById('pinCancelBtn');
   const sessionUserLabel = document.getElementById('sessionUserLabel');
   const logoutBtn = document.getElementById('logoutBtn');
 
-  function unlockApp(pin){
-    sessionStorage.setItem(SESSION_KEY, pin);
-    currentUserName = PIN_USERS[pin];
+  function nameForEmail(email){
+    const entry = Object.values(USER_DIRECTORY).find(u=>u.email===email);
+    return entry ? entry.nombre : email;
+  }
+
+  function unlockApp(name){
+    currentUserName = name;
     lockScreen.style.display = 'none';
     appContent.style.display = '';
-    sessionUserLabel.textContent = currentUserName;
+    sessionUserLabel.textContent = name;
+    pinForm.style.display = 'none';
+    pinInput.value = '';
+    pinPasswordInput.value = '';
+    pinError.style.display = 'none';
   }
 
   function lockApp(){
-    sessionStorage.removeItem(SESSION_KEY);
     currentUserName = null;
     appContent.style.display = 'none';
     lockScreen.style.display = 'flex';
     pinForm.style.display = 'none';
     pinInput.value = '';
+    pinPasswordInput.value = '';
     pinError.style.display = 'none';
   }
 
@@ -1387,33 +1404,40 @@
   pinCancelBtn.addEventListener('click', ()=>{
     pinForm.style.display = 'none';
     pinInput.value = '';
+    pinPasswordInput.value = '';
     pinError.style.display = 'none';
   });
 
-  pinForm.addEventListener('submit', (e)=>{
+  pinForm.addEventListener('submit', async (e)=>{
     e.preventDefault();
-    const pin = pinInput.value.trim();
-    if(PIN_USERS[pin]){
-      unlockApp(pin);
-    }else{
+    const usuario = USER_DIRECTORY[pinInput.value.trim().toLowerCase()];
+    if(!usuario){
+      pinError.textContent = 'Usuario o contraseña incorrectos.';
       pinError.style.display = 'block';
-      pinInput.value = '';
-      pinInput.focus();
+      return;
+    }
+    try{
+      await signInWithEmailAndPassword(auth, usuario.email, pinPasswordInput.value);
+      // onAuthStateChanged desbloquea la app al confirmar la sesión.
+    }catch(err){
+      pinError.textContent = 'Usuario o contraseña incorrectos.';
+      pinError.style.display = 'block';
+      pinPasswordInput.value = '';
+      pinPasswordInput.focus();
     }
   });
 
-  logoutBtn.addEventListener('click', lockApp);
-
-  const savedPin = sessionStorage.getItem(SESSION_KEY);
-  if(savedPin && PIN_USERS[savedPin]){
-    unlockApp(savedPin);
-  }
+  logoutBtn.addEventListener('click', ()=>{ signOut(auth); });
 
   // ---------- Arranque ----------
   initFirebase().then(ready=>{
     if(!ready) return;
     watchRecords();
     watchAuditLog();
+    onAuthStateChanged(auth, user=>{
+      if(user){ unlockApp(nameForEmail(user.email)); }
+      else{ lockApp(); }
+    });
   });
 </script>
 </body>
