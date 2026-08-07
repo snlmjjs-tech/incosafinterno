@@ -162,6 +162,12 @@
     border-color:var(--navy-light);
     box-shadow:0 0 0 3px rgba(26,26,122,.12);
   }
+  .pin-hint{
+    color:var(--ink-soft);
+    font-size:11.5px;
+    margin:-4px 0 0;
+    text-align:center;
+  }
   .pin-error{
     color:var(--danger);
     font-size:12.5px;
@@ -525,6 +531,7 @@
     <form id="pinForm" class="pin-form" style="display:none;">
       <label for="pinInput">Ingrese PIN para entrar a los registros</label>
       <input type="password" inputmode="numeric" autocomplete="off" id="pinInput" placeholder="••••••" minlength="6" maxlength="12">
+      <p class="pin-hint">El PIN debe tener al menos 6 dígitos.</p>
       <p class="pin-error" id="pinError" style="display:none;">PIN incorrecto.</p>
       <div class="pin-actions">
         <button type="button" class="btn btn-ghost" id="pinCancelBtn">Cancelar</button>
