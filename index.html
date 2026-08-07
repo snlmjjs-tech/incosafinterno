@@ -559,6 +559,7 @@
     <button data-tab="curso">Reporte por curso</button>
     <button data-tab="establecimiento">Reporte establecimiento</button>
     <button data-tab="citacion">Carta de citación</button>
+    <button data-tab="auditoria">Auditoría</button>
   </nav>
 </div>
 
@@ -757,36 +758,131 @@
     <div id="citaPreviewWrap"></div>
   </section>
 
+  <!-- ===================== AUDITORÍA ===================== -->
+  <section class="panel" id="panel-auditoria">
+    <h2 class="section-title">Auditoría <span class="tag">Actividad de usuarios</span></h2>
+    <p class="section-desc">Registro de quién creó o eliminó cada suspensión, con fecha y hora.</p>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Fecha y hora</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr>
+          </thead>
+          <tbody id="auditBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="auditEmpty" style="display:none;">
+        <span class="glyph">🕓</span>
+        Aún no hay actividad registrada.
+      </div>
+    </div>
+  </section>
+
 </main>
 
 <div class="toast" id="toast"></div>
 
 </div><!-- /appContent -->
 
-<script>
-(function(){
-  const STORAGE_KEY = 'suspensiones:records';
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import {
+    getFirestore, collection, addDoc, deleteDoc, doc,
+    onSnapshot, query, orderBy, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  // ---------- Configuración de Firebase ----------
+  // Reemplace estos valores por los de su proyecto (Consola Firebase ▸
+  // Configuración del proyecto ▸ Tus apps ▸ Config del SDK).
+  const firebaseConfig = {
+    apiKey: "PEGA_AQUI_TU_API_KEY",
+    authDomain: "PEGA_AQUI_TU_PROYECTO.firebaseapp.com",
+    projectId: "PEGA_AQUI_TU_PROYECTO",
+    storageBucket: "PEGA_AQUI_TU_PROYECTO.appspot.com",
+    messagingSenderId: "PEGA_AQUI_TU_SENDER_ID",
+    appId: "PEGA_AQUI_TU_APP_ID"
+  };
+  const FIREBASE_CONFIGURED = !firebaseConfig.apiKey.startsWith('PEGA_AQUI');
+
   let records = [];
+  let auditLog = [];
+  let currentUserName = null;
+  let db = null;
 
-  // ---------- Storage helpers ----------
-  async function loadRecords(){
-    try{
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      records = raw ? JSON.parse(raw) : [];
-    }catch(e){
-      records = [];
+  async function initFirebase(){
+    if(!FIREBASE_CONFIGURED){
+      document.getElementById('lockScreen').innerHTML = `
+        <div class="lock-card">
+          <h1 class="lock-title">Falta configurar Firebase</h1>
+          <p class="lock-sub">Complete el objeto <code>firebaseConfig</code> en el código
+          (dentro de &lt;script type="module"&gt;) con los datos de su proyecto de Firebase
+          para activar el sistema de registros.</p>
+        </div>`;
+      return false;
     }
-    renderAll();
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    await signInAnonymously(getAuth(app));
+    return true;
   }
-  async function saveRecords(){
+
+  // ---------- Registros (Firestore, en tiempo real) ----------
+  function watchRecords(){
+    const q = query(collection(db,'suspensiones'), orderBy('creadoEn','desc'));
+    onSnapshot(q, snap=>{
+      records = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      renderAll();
+    }, err=>{
+      console.error(err);
+      showToast('No se pudo conectar con la base de datos.');
+    });
+  }
+
+  // ---------- Auditoría (quién hizo qué) ----------
+  function watchAuditLog(){
+    const q = query(collection(db,'auditoria'), orderBy('fecha','desc'));
+    onSnapshot(q, snap=>{
+      auditLog = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      renderAuditoria();
+    }, err=>{
+      console.error(err);
+    });
+  }
+
+  async function logAudit(accion, rec){
     try{
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      await addDoc(collection(db,'auditoria'), {
+        accion,
+        alumno: rec.nombre || '—',
+        curso: rec.curso || '—',
+        usuario: currentUserName || '—',
+        fecha: serverTimestamp()
+      });
     }catch(e){
-      showToast('No se pudo guardar. Intente nuevamente.');
+      console.error('No se pudo registrar auditoría', e);
     }
   }
 
-  function uid(){return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+  function renderAuditoria(){
+    const body = document.getElementById('auditBody');
+    const empty = document.getElementById('auditEmpty');
+    if(!body) return;
+    if(auditLog.length===0){
+      body.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    body.innerHTML = auditLog.map(a=>`
+      <tr>
+        <td>${a.fecha && a.fecha.toDate ? a.fecha.toDate().toLocaleString('es-CL') : '—'}</td>
+        <td>${escapeHtml(a.usuario||'—')}</td>
+        <td>${escapeHtml(a.accion||'—')}</td>
+        <td>${escapeHtml(a.alumno||'—')}${a.curso?` — ${escapeHtml(a.curso)}`:''}</td>
+      </tr>
+    `).join('');
+  }
 
   function showToast(msg){
     const t = document.getElementById('toast');
@@ -859,7 +955,6 @@
     if(!establecimiento){ showToast('Indique el establecimiento.'); return; }
 
     const rec = {
-      id: uid(),
       nombre: document.getElementById('f-nombre').value.trim(),
       rut: document.getElementById('f-rut').value.trim(),
       curso, establecimiento,
@@ -869,16 +964,21 @@
       responsable: document.getElementById('f-responsable').value.trim(),
       motivo: document.getElementById('f-motivo').value.trim(),
       observaciones: document.getElementById('f-observaciones').value.trim(),
-      creado: new Date().toISOString()
+      creadoPor: currentUserName,
+      creadoEn: serverTimestamp()
     };
-    records.push(rec);
-    await saveRecords();
-    renderAll();
-    document.getElementById('suspForm').reset();
-    document.getElementById('f-fecha-inicio').valueAsDate = new Date();
-    document.getElementById('f-dias').value = 1;
-    estOtroWrap.style.display = 'none';
-    showToast('✓ Suspensión registrada correctamente.');
+    try{
+      await addDoc(collection(db,'suspensiones'), rec);
+      await logAudit('Registró suspensión', rec);
+      document.getElementById('suspForm').reset();
+      document.getElementById('f-fecha-inicio').valueAsDate = new Date();
+      document.getElementById('f-dias').value = 1;
+      estOtroWrap.style.display = 'none';
+      showToast('✓ Suspensión registrada correctamente.');
+    }catch(err){
+      console.error(err);
+      showToast('No se pudo guardar. Intente nuevamente.');
+    }
   });
 
   document.getElementById('clearFormBtn').addEventListener('click', ()=>{
@@ -890,10 +990,15 @@
 
   async function deleteRecord(id){
     if(!confirm('¿Eliminar este registro de suspensión? Esta acción no se puede deshacer.')) return;
-    records = records.filter(r=>r.id!==id);
-    await saveRecords();
-    renderAll();
-    showToast('Registro eliminado.');
+    const rec = records.find(r=>r.id===id);
+    try{
+      await deleteDoc(doc(db,'suspensiones', id));
+      await logAudit('Eliminó suspensión', rec || {});
+      showToast('Registro eliminado.');
+    }catch(err){
+      console.error(err);
+      showToast('No se pudo eliminar. Intente nuevamente.');
+    }
   }
   window.__deleteRecord = deleteRecord;
 
@@ -1258,13 +1363,15 @@
 
   function unlockApp(pin){
     sessionStorage.setItem(SESSION_KEY, pin);
+    currentUserName = PIN_USERS[pin];
     lockScreen.style.display = 'none';
     appContent.style.display = '';
-    sessionUserLabel.textContent = PIN_USERS[pin];
+    sessionUserLabel.textContent = currentUserName;
   }
 
   function lockApp(){
     sessionStorage.removeItem(SESSION_KEY);
+    currentUserName = null;
     appContent.style.display = 'none';
     lockScreen.style.display = 'flex';
     pinForm.style.display = 'none';
@@ -1302,8 +1409,12 @@
     unlockApp(savedPin);
   }
 
-  loadRecords();
-})();
+  // ---------- Arranque ----------
+  initFirebase().then(ready=>{
+    if(!ready) return;
+    watchRecords();
+    watchAuditLog();
+  });
 </script>
 </body>
 </html>
