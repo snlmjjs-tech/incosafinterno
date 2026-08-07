@@ -152,7 +152,9 @@
     border:1.5px solid var(--line);
     border-radius:7px;
     padding:12px;
-    font-size:15px;
+    font-size:18px;
+    text-align:center;
+    letter-spacing:.3em;
     font-family:var(--font-body);
   }
   .pin-form input:focus{
@@ -521,10 +523,9 @@
     <p class="lock-sub">I. Comercial Alberto Valenzuela Llanos — San Fernando</p>
     <button class="btn btn-gold" id="intranetBtn" type="button">🔒 Intranet</button>
     <form id="pinForm" class="pin-form" style="display:none;">
-      <label for="pinInput">Ingrese sus credenciales para entrar a los registros</label>
-      <input type="text" autocomplete="username" id="pinInput" placeholder="Usuario">
-      <input type="password" autocomplete="current-password" id="pinPassword" placeholder="Contraseña" aria-label="Contraseña">
-      <p class="pin-error" id="pinError" style="display:none;">Usuario o contraseña incorrectos.</p>
+      <label for="pinInput">Ingrese PIN para entrar a los registros</label>
+      <input type="password" inputmode="numeric" autocomplete="off" id="pinInput" placeholder="••••••" minlength="6" maxlength="12">
+      <p class="pin-error" id="pinError" style="display:none;">PIN incorrecto.</p>
       <div class="pin-actions">
         <button type="button" class="btn btn-ghost" id="pinCancelBtn">Cancelar</button>
         <button type="submit" class="btn btn-primary">Ingresar</button>
@@ -809,14 +810,16 @@
   // ---------- Directorio de usuarios ----------
   // Cada persona debe existir como usuario real en Firebase Authentication
   // (Authentication ▸ Users ▸ Agregar usuario), con el correo indicado aquí
-  // y una contraseña propia que solo ella conoce (mínimo 6 caracteres).
-  // Este mapa NO contiene contraseñas: solo asocia un nombre de usuario
-  // corto con el correo real usado para iniciar sesión, y con el nombre
-  // completo que se muestra en pantalla.
-  const USER_DIRECTORY = {
-    'luis':    { email: 'luis.cadiz@incosafintranet.cl',      nombre: 'Luis Ramón Cádiz Fuenzalida' },
-    'claudio': { email: 'claudio.valenzuela@incosafintranet.cl', nombre: 'Claudio Matías Valenzuela Fuentes' }
-  };
+  // y el PIN que ella elija como contraseña de esa cuenta (Firebase exige
+  // mínimo 6 caracteres, así que el PIN debe tener 6 o más dígitos).
+  // El código NO contiene los PIN: solo el correo interno de cada cuenta
+  // y el nombre completo que se muestra en pantalla. Al ingresar un PIN,
+  // la app prueba ese PIN como contraseña contra cada correo de esta
+  // lista hasta encontrar la cuenta a la que pertenece.
+  const USER_DIRECTORY = [
+    { email: 'luis.cadiz@incosafintranet.cl',      nombre: 'Luis Ramón Cádiz Fuenzalida' },
+    { email: 'claudio.valenzuela@incosafintranet.cl', nombre: 'Claudio Matías Valenzuela Fuentes' }
+  ];
 
   let records = [];
   let auditLog = [];
@@ -1358,20 +1361,19 @@
   document.getElementById('printCursoBtn').addEventListener('click', ()=>window.print());
   document.getElementById('printEstBtn').addEventListener('click', ()=>window.print());
 
-  // ---------- Acceso Intranet (usuario / contraseña reales) ----------
+  // ---------- Acceso Intranet (solo PIN, respaldado por Firebase) ----------
   const lockScreen = document.getElementById('lockScreen');
   const appContent = document.getElementById('appContent');
   const intranetBtn = document.getElementById('intranetBtn');
   const pinForm = document.getElementById('pinForm');
   const pinInput = document.getElementById('pinInput');
-  const pinPasswordInput = document.getElementById('pinPassword');
   const pinError = document.getElementById('pinError');
   const pinCancelBtn = document.getElementById('pinCancelBtn');
   const sessionUserLabel = document.getElementById('sessionUserLabel');
   const logoutBtn = document.getElementById('logoutBtn');
 
   function nameForEmail(email){
-    const entry = Object.values(USER_DIRECTORY).find(u=>u.email===email);
+    const entry = USER_DIRECTORY.find(u=>u.email===email);
     return entry ? entry.nombre : email;
   }
 
@@ -1382,7 +1384,6 @@
     sessionUserLabel.textContent = name;
     pinForm.style.display = 'none';
     pinInput.value = '';
-    pinPasswordInput.value = '';
     pinError.style.display = 'none';
   }
 
@@ -1392,7 +1393,6 @@
     lockScreen.style.display = 'flex';
     pinForm.style.display = 'none';
     pinInput.value = '';
-    pinPasswordInput.value = '';
     pinError.style.display = 'none';
   }
 
@@ -1404,27 +1404,23 @@
   pinCancelBtn.addEventListener('click', ()=>{
     pinForm.style.display = 'none';
     pinInput.value = '';
-    pinPasswordInput.value = '';
     pinError.style.display = 'none';
   });
 
   pinForm.addEventListener('submit', async (e)=>{
     e.preventDefault();
-    const usuario = USER_DIRECTORY[pinInput.value.trim().toLowerCase()];
-    if(!usuario){
-      pinError.textContent = 'Usuario o contraseña incorrectos.';
-      pinError.style.display = 'block';
-      return;
+    const pin = pinInput.value;
+    // Prueba el PIN como contraseña contra cada cuenta conocida hasta
+    // encontrar a cuál pertenece (solo hay unas pocas cuentas del colegio).
+    for(const usuario of USER_DIRECTORY){
+      try{
+        await signInWithEmailAndPassword(auth, usuario.email, pin);
+        return; // onAuthStateChanged desbloquea la app al confirmar la sesión.
+      }catch(err){ /* prueba con la siguiente cuenta */ }
     }
-    try{
-      await signInWithEmailAndPassword(auth, usuario.email, pinPasswordInput.value);
-      // onAuthStateChanged desbloquea la app al confirmar la sesión.
-    }catch(err){
-      pinError.textContent = 'Usuario o contraseña incorrectos.';
-      pinError.style.display = 'block';
-      pinPasswordInput.value = '';
-      pinPasswordInput.focus();
-    }
+    pinError.style.display = 'block';
+    pinInput.value = '';
+    pinInput.focus();
   });
 
   logoutBtn.addEventListener('click', ()=>{ signOut(auth); });
