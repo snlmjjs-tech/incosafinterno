@@ -655,8 +655,8 @@
   // ---------- Storage helpers ----------
   async function loadRecords(){
     try{
-      const res = await window.storage.get(STORAGE_KEY, false);
-      records = res && res.value ? JSON.parse(res.value) : [];
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      records = raw ? JSON.parse(raw) : [];
     }catch(e){
       records = [];
     }
@@ -664,7 +664,7 @@
   }
   async function saveRecords(){
     try{
-      await window.storage.set(STORAGE_KEY, JSON.stringify(records), false);
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
     }catch(e){
       showToast('No se pudo guardar. Intente nuevamente.');
     }
@@ -845,8 +845,7 @@
 
     if(rows.length===0){
       body.innerHTML='';
-      empty.style.display = records.length===0 ? 'block' : 'block';
-      empty.querySelector ? null : null;
+      empty.style.display = 'block';
       if(records.length>0){
         empty.innerHTML = '<span class="glyph">🔍</span>Ningún registro coincide con el filtro aplicado.';
       } else {
