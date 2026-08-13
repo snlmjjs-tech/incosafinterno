@@ -909,7 +909,10 @@
     const body = document.getElementById('auditBody');
     const empty = document.getElementById('auditEmpty');
     if(!body) return;
-    const rows = auditLog.filter(a=>a.anio===anioSelect.value);
+    const rows = auditLog.filter(a=>{
+      const anio = a.anio || (a.fecha && a.fecha.toDate ? String(a.fecha.toDate().getFullYear()) : null);
+      return anio === anioSelect.value;
+    });
     if(rows.length===0){
       body.innerHTML = '';
       empty.style.display = 'block';
@@ -999,8 +1002,14 @@
     renderAll();
     renderAuditoria();
   });
+  function anioDeRegistro(r){
+    // Registros creados antes de tener el campo "anio" no lo tienen guardado;
+    // en ese caso se usa el año de su fecha de inicio como respaldo, para
+    // que sigan siendo visibles en vez de desaparecer del listado.
+    return r.anio || (r.fecha ? r.fecha.slice(0,4) : null);
+  }
   function recordsDelAnio(){
-    return records.filter(r=>r.anio===anioSelect.value);
+    return records.filter(r=>anioDeRegistro(r)===anioSelect.value);
   }
 
   // ---------- Form submit ----------
