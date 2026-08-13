@@ -242,13 +242,12 @@
     letter-spacing:.06em;
   }
   .year-select{
-    margin-left:auto;
     font-family:var(--font-mono);
     font-size:12.5px;
     font-weight:700;
-    background:var(--gold);
+    background:rgba(255,255,255,.35);
     color:var(--navy-deep);
-    border:none;
+    border:1.5px solid rgba(7,7,46,.35);
     padding:5px 10px;
     border-radius:6px;
     letter-spacing:.03em;
@@ -565,6 +564,7 @@
       <p class="brand-sub">Sistema de Registro y Reportes de Suspensiones</p>
     </div>
     <div class="brand-session no-print">
+      <select id="anioSelect" class="year-select" title="Año escolar activo"></select>
       <span class="session-user" id="sessionUserLabel"></span>
       <button class="btn btn-ghost btn-sm" id="logoutBtn" type="button">Cerrar sesión</button>
     </div>
@@ -587,7 +587,7 @@
 
   <!-- ===================== REGISTRO ===================== -->
   <section class="panel active" id="panel-registro">
-    <h2 class="section-title">Nueva suspensión <span class="tag">Registro</span><select id="anioSelect" class="year-select" title="Año escolar de este registro"></select></h2>
+    <h2 class="section-title">Nueva suspensión <span class="tag">Registro</span></h2>
     <p class="section-desc">Complete los datos del alumno y la falta para dejar constancia en el sistema.</p>
     <div class="card">
       <form id="suspForm">
@@ -668,10 +668,6 @@
       <div class="field grow">
         <label>Buscar alumno o motivo</label>
         <input type="text" id="searchBox" placeholder="Escriba un nombre o palabra clave…">
-      </div>
-      <div class="field">
-        <label>Año</label>
-        <select id="filterAnio"><option value="">Todos</option></select>
       </div>
       <div class="field">
         <label>Curso</label>
@@ -900,6 +896,7 @@
         accion,
         alumno: rec.nombre || '—',
         curso: rec.curso || '—',
+        anio: rec.anio || null,
         usuario: currentUserName || '—',
         fecha: serverTimestamp()
       });
@@ -912,13 +909,14 @@
     const body = document.getElementById('auditBody');
     const empty = document.getElementById('auditEmpty');
     if(!body) return;
-    if(auditLog.length===0){
+    const rows = auditLog.filter(a=>a.anio===anioSelect.value);
+    if(rows.length===0){
       body.innerHTML = '';
       empty.style.display = 'block';
       return;
     }
     empty.style.display = 'none';
-    body.innerHTML = auditLog.map(a=>`
+    body.innerHTML = rows.map(a=>`
       <tr>
         <td>${a.fecha && a.fecha.toDate ? a.fecha.toDate().toLocaleString('es-CL') : '—'}</td>
         <td>${escapeHtml(a.usuario||'—')}</td>
@@ -990,7 +988,7 @@
 
   document.getElementById('f-fecha-inicio').valueAsDate = new Date();
 
-  // ---------- Año escolar ----------
+  // ---------- Año escolar (filtro global) ----------
   const ANIOS = ['2026','2027','2028','2029','2030'];
   const ANIO_KEY = 'suspensiones:anio';
   const anioSelect = document.getElementById('anioSelect');
@@ -998,7 +996,12 @@
   anioSelect.value = localStorage.getItem(ANIO_KEY) || ANIOS[0];
   anioSelect.addEventListener('change', ()=>{
     localStorage.setItem(ANIO_KEY, anioSelect.value);
+    renderAll();
+    renderAuditoria();
   });
+  function recordsDelAnio(){
+    return records.filter(r=>r.anio===anioSelect.value);
+  }
 
   // ---------- Form submit ----------
   document.getElementById('suspForm').addEventListener('submit', async (e)=>{
@@ -1061,14 +1064,10 @@
   function uniqueSorted(arr){ return [...new Set(arr)].filter(Boolean).sort((a,b)=>a.localeCompare(b,'es')); }
 
   function populateFilterSelects(){
-    const cursos = uniqueSorted(records.map(r=>r.curso));
-    const alumnos = uniqueSorted(records.map(r=>r.nombre));
-    const establecimientos = uniqueSorted(records.map(r=>r.establecimiento));
-
-    const filterAnio = document.getElementById('filterAnio');
-    const anioVal = filterAnio.value;
-    filterAnio.innerHTML = '<option value="">Todos</option>' + ANIOS.map(a=>`<option>${a}</option>`).join('');
-    filterAnio.value = anioVal;
+    const anioRecords = recordsDelAnio();
+    const cursos = uniqueSorted(anioRecords.map(r=>r.curso));
+    const alumnos = uniqueSorted(anioRecords.map(r=>r.nombre));
+    const establecimientos = uniqueSorted(anioRecords.map(r=>r.establecimiento));
 
     const filterCurso = document.getElementById('filterCurso');
     const curVal = filterCurso.value;
@@ -1092,7 +1091,7 @@
 
     const citaSelect = document.getElementById('citaRecordSelect');
     const ctVal = citaSelect.value;
-    const sortedForCita = [...records].sort((a,b)=> b.fecha.localeCompare(a.fecha));
+    const sortedForCita = [...anioRecords].sort((a,b)=> b.fecha.localeCompare(a.fecha));
     citaSelect.innerHTML = '<option value="">Seleccione un registro…</option>' +
       sortedForCita.map(r=>`<option value="${r.id}">${escapeHtml(r.nombre)} — ${escapeHtml(r.curso)} — ${fmtDate(r.fecha)}</option>`).join('');
     citaSelect.value = ctVal;
@@ -1101,13 +1100,11 @@
   // ---------- Listado ----------
   function renderListado(){
     const search = document.getElementById('searchBox').value.toLowerCase().trim();
-    const fAnio = document.getElementById('filterAnio').value;
     const fCurso = document.getElementById('filterCurso').value;
     const fGravedad = document.getElementById('filterGravedad').value;
 
-    let rows = [...records].sort((a,b)=> b.fecha.localeCompare(a.fecha));
+    let rows = [...recordsDelAnio()].sort((a,b)=> b.fecha.localeCompare(a.fecha));
     rows = rows.filter(r=>{
-      if(fAnio && r.anio !== fAnio) return false;
       if(fCurso && r.curso !== fCurso) return false;
       if(fGravedad && r.gravedad !== fGravedad) return false;
       if(search){
@@ -1124,10 +1121,10 @@
     if(rows.length===0){
       body.innerHTML='';
       empty.style.display = 'block';
-      if(records.length>0){
+      if(recordsDelAnio().length>0){
         empty.innerHTML = '<span class="glyph">🔍</span>Ningún registro coincide con el filtro aplicado.';
       } else {
-        empty.innerHTML = '<span class="glyph">📋</span>Aún no hay suspensiones registradas.<br>Vaya a "Registrar suspensión" para comenzar.';
+        empty.innerHTML = `<span class="glyph">📋</span>Aún no hay suspensiones registradas en ${escapeHtml(anioSelect.value)}.<br>Vaya a "Registrar suspensión" para comenzar.`;
       }
       return;
     }
@@ -1158,7 +1155,7 @@
       container.innerHTML = `<div class="card empty-state"><span class="glyph">🧑‍🎓</span>Seleccione un alumno para ver su reporte.</div>`;
       return;
     }
-    const rows = records.filter(r=>r.nombre===target).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+    const rows = recordsDelAnio().filter(r=>r.nombre===target).sort((a,b)=>a.fecha.localeCompare(b.fecha));
     const totalDias = rows.reduce((s,r)=>s+r.dias,0);
     const gravisimas = rows.filter(r=>r.gravedad==='Gravísima').length;
     const curso = rows[rows.length-1]?.curso || '—';
@@ -1199,7 +1196,7 @@
       container.innerHTML = `<div class="card empty-state"><span class="glyph">🏷</span>Seleccione un curso para ver su reporte.</div>`;
       return;
     }
-    const rows = records.filter(r=>r.curso===target);
+    const rows = recordsDelAnio().filter(r=>r.curso===target);
     const totalDias = rows.reduce((s,r)=>s+r.dias,0);
     const alumnosSet = new Set(rows.map(r=>r.nombre));
 
@@ -1239,10 +1236,11 @@
   function renderEstReport(){
     const target = document.getElementById('reportEstTarget').value;
     const container = document.getElementById('estReportBody');
-    const rows = target ? records.filter(r=>r.establecimiento===target) : records;
+    const anioRows = recordsDelAnio();
+    const rows = target ? anioRows.filter(r=>r.establecimiento===target) : anioRows;
 
     if(rows.length===0){
-      container.innerHTML = `<div class="card empty-state"><span class="glyph">🏫</span>No hay suspensiones registradas${target?` para ${escapeHtml(target)}`:''} todavía.</div>`;
+      container.innerHTML = `<div class="card empty-state"><span class="glyph">🏫</span>No hay suspensiones registradas${target?` para ${escapeHtml(target)}`:''} en ${escapeHtml(anioSelect.value)} todavía.</div>`;
       return;
     }
     const totalDias = rows.reduce((s,r)=>s+r.dias,0);
@@ -1378,7 +1376,6 @@
   }
 
   document.getElementById('searchBox').addEventListener('input', renderListado);
-  document.getElementById('filterAnio').addEventListener('change', renderListado);
   document.getElementById('filterCurso').addEventListener('change', renderListado);
   document.getElementById('filterGravedad').addEventListener('change', renderListado);
   document.getElementById('reportTarget').addEventListener('change', renderAlumnoReport);
