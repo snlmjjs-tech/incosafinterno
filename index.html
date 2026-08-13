@@ -241,6 +241,19 @@
     border-radius:4px;
     letter-spacing:.06em;
   }
+  .year-select{
+    margin-left:auto;
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    font-weight:700;
+    background:var(--gold);
+    color:var(--navy-deep);
+    border:none;
+    padding:5px 10px;
+    border-radius:6px;
+    letter-spacing:.03em;
+    cursor:pointer;
+  }
   p.section-desc{
     color:var(--ink-soft);
     font-size:13.5px;
@@ -574,7 +587,7 @@
 
   <!-- ===================== REGISTRO ===================== -->
   <section class="panel active" id="panel-registro">
-    <h2 class="section-title">Nueva suspensión <span class="tag">Registro</span></h2>
+    <h2 class="section-title">Nueva suspensión <span class="tag">Registro</span><select id="anioSelect" class="year-select" title="Año escolar de este registro"></select></h2>
     <p class="section-desc">Complete los datos del alumno y la falta para dejar constancia en el sistema.</p>
     <div class="card">
       <form id="suspForm">
@@ -655,6 +668,10 @@
       <div class="field grow">
         <label>Buscar alumno o motivo</label>
         <input type="text" id="searchBox" placeholder="Escriba un nombre o palabra clave…">
+      </div>
+      <div class="field">
+        <label>Año</label>
+        <select id="filterAnio"><option value="">Todos</option></select>
       </div>
       <div class="field">
         <label>Curso</label>
@@ -973,6 +990,16 @@
 
   document.getElementById('f-fecha-inicio').valueAsDate = new Date();
 
+  // ---------- Año escolar ----------
+  const ANIOS = ['2026','2027','2028','2029','2030'];
+  const ANIO_KEY = 'suspensiones:anio';
+  const anioSelect = document.getElementById('anioSelect');
+  anioSelect.innerHTML = ANIOS.map(a=>`<option value="${a}">${a}</option>`).join('');
+  anioSelect.value = localStorage.getItem(ANIO_KEY) || ANIOS[0];
+  anioSelect.addEventListener('change', ()=>{
+    localStorage.setItem(ANIO_KEY, anioSelect.value);
+  });
+
   // ---------- Form submit ----------
   document.getElementById('suspForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
@@ -985,6 +1012,7 @@
       nombre: document.getElementById('f-nombre').value.trim(),
       rut: document.getElementById('f-rut').value.trim(),
       curso, establecimiento,
+      anio: anioSelect.value,
       fecha: document.getElementById('f-fecha-inicio').value,
       dias: parseInt(document.getElementById('f-dias').value,10) || 1,
       gravedad: document.getElementById('f-gravedad').value,
@@ -1037,6 +1065,11 @@
     const alumnos = uniqueSorted(records.map(r=>r.nombre));
     const establecimientos = uniqueSorted(records.map(r=>r.establecimiento));
 
+    const filterAnio = document.getElementById('filterAnio');
+    const anioVal = filterAnio.value;
+    filterAnio.innerHTML = '<option value="">Todos</option>' + ANIOS.map(a=>`<option>${a}</option>`).join('');
+    filterAnio.value = anioVal;
+
     const filterCurso = document.getElementById('filterCurso');
     const curVal = filterCurso.value;
     filterCurso.innerHTML = '<option value="">Todos</option>' + cursos.map(c=>`<option>${c}</option>`).join('');
@@ -1068,11 +1101,13 @@
   // ---------- Listado ----------
   function renderListado(){
     const search = document.getElementById('searchBox').value.toLowerCase().trim();
+    const fAnio = document.getElementById('filterAnio').value;
     const fCurso = document.getElementById('filterCurso').value;
     const fGravedad = document.getElementById('filterGravedad').value;
 
     let rows = [...records].sort((a,b)=> b.fecha.localeCompare(a.fecha));
     rows = rows.filter(r=>{
+      if(fAnio && r.anio !== fAnio) return false;
       if(fCurso && r.curso !== fCurso) return false;
       if(fGravedad && r.gravedad !== fGravedad) return false;
       if(search){
@@ -1343,6 +1378,7 @@
   }
 
   document.getElementById('searchBox').addEventListener('input', renderListado);
+  document.getElementById('filterAnio').addEventListener('change', renderListado);
   document.getElementById('filterCurso').addEventListener('change', renderListado);
   document.getElementById('filterGravedad').addEventListener('change', renderListado);
   document.getElementById('reportTarget').addEventListener('change', renderAlumnoReport);
