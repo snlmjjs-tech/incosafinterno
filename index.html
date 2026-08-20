@@ -269,7 +269,7 @@
   .card + .card{margin-top:18px;}
 
   /* ===== Form ===== */
-  form#suspForm{
+  form#suspForm, form#retiroForm{
     display:grid;
     grid-template-columns:repeat(2,1fr);
     gap:16px 20px;
@@ -562,9 +562,116 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
   @media (max-width:720px){
-    form#suspForm{grid-template-columns:1fr;}
+    form#suspForm, form#retiroForm{grid-template-columns:1fr;}
     .brand-title{font-size:17px;}
     .brand-sub{font-size:11px;}
+  }
+
+  /* ===== Retiro de estudiantes ===== */
+  .note{
+    background:var(--gold-pale);
+    border:1px solid var(--gold-deep);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:12.5px;
+    color:var(--ink);
+    line-height:1.5;
+  }
+  .subtabs{
+    display:flex;
+    gap:8px;
+    margin-bottom:18px;
+    flex-wrap:wrap;
+  }
+  .subtab-btn{
+    appearance:none;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink-soft);
+    font-family:var(--font-body);
+    font-size:12.5px;
+    font-weight:700;
+    padding:8px 16px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:background .15s, color .15s, border-color .15s;
+  }
+  .subtab-btn:hover{border-color:var(--gold-deep);color:var(--navy);}
+  .subtab-btn.active{
+    background:var(--navy);
+    border-color:var(--navy);
+    color:var(--gold);
+  }
+  .grid-2{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:16px 20px;
+    margin-bottom:16px;
+  }
+  @media (max-width:640px){ .grid-2{grid-template-columns:1fr;} }
+  .alumno-hist-summary{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:14px;
+    font-weight:700;
+    color:var(--navy);
+  }
+  .alumno-hist-total{
+    font-family:var(--font-mono);
+    font-size:12px;
+    background:var(--navy);
+    color:var(--gold);
+    padding:3px 10px;
+    border-radius:999px;
+  }
+  .month-grid{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:8px;
+  }
+  @media (max-width:640px){ .month-grid{grid-template-columns:repeat(3,1fr);} }
+  .month-box{
+    text-align:center;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:8px 4px;
+    background:#fbfaf4;
+  }
+  .month-box.has-data{
+    border-color:var(--gold-deep);
+    background:var(--gold-pale);
+  }
+  .month-box .month-name{
+    display:block;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--ink-soft);
+    font-weight:700;
+  }
+  .month-box .month-count{
+    display:block;
+    font-family:var(--font-display);
+    font-size:18px;
+    color:var(--navy-deep);
+    margin-top:2px;
+  }
+  .pill{
+    display:inline-block;
+    font-size:11px;
+    font-weight:700;
+    padding:3px 10px;
+    border-radius:999px;
+  }
+  .pill-ok{background:var(--ok-bg);color:var(--ok);}
+  .pill-no{background:var(--danger-bg);color:var(--danger);}
+  .stat-canvas{
+    width:100%;
+    max-height:240px;
+    display:block;
   }
 </style>
 </head>
@@ -614,6 +721,7 @@
     <button data-tab="curso">Reporte por curso</button>
     <button data-tab="establecimiento">Reporte establecimiento</button>
     <button data-tab="citacion">Carta de citación</button>
+    <button data-tab="retiro">Retiro de estudiantes</button>
     <button data-tab="auditoria">Auditoría</button>
   </nav>
 </div>
@@ -813,6 +921,164 @@
     <div id="citaPreviewWrap"></div>
   </section>
 
+  <!-- ===================== RETIRO DE ESTUDIANTES ===================== -->
+  <section class="panel" id="panel-retiro">
+    <h2 class="section-title">Retiro de estudiantes <span class="tag">Salida durante la jornada</span></h2>
+    <p class="section-desc">Registre el retiro de un alumno durante la jornada escolar y genere el comprobante en PDF.</p>
+
+    <div class="subtabs no-print">
+      <button class="subtab-btn active" data-subtab="retiro-nuevo">Nuevo retiro</button>
+      <button class="subtab-btn" data-subtab="retiro-historial">Historial</button>
+      <button class="subtab-btn" data-subtab="retiro-stats">Estadísticas</button>
+    </div>
+
+    <!-- Nuevo retiro -->
+    <div id="sub-retiro-nuevo">
+      <div class="card">
+        <form id="retiroForm">
+          <div class="field">
+            <label for="ret-fecha">Fecha</label>
+            <input type="date" id="ret-fecha" required>
+          </div>
+          <div class="field">
+            <label for="ret-hora">Hora de retiro</label>
+            <input type="time" id="ret-hora" required>
+          </div>
+          <div class="field">
+            <label for="ret-alumno">Nombre del alumno</label>
+            <input type="text" id="ret-alumno" placeholder="Nombre y apellidos" required>
+          </div>
+          <div class="field">
+            <label for="ret-curso">Curso</label>
+            <input type="text" id="ret-curso" placeholder="Ej: 1° Medio A" required>
+          </div>
+          <div class="field">
+            <label for="ret-retira">Nombre de quien retira</label>
+            <input type="text" id="ret-retira" placeholder="Nombre y apellidos" required>
+          </div>
+          <div class="field">
+            <label for="ret-relacion">Relación con el alumno</label>
+            <select id="ret-relacion">
+              <option value="Padre">Padre</option>
+              <option value="Madre">Madre</option>
+              <option value="Apoderado">Apoderado</option>
+              <option value="Otro autorizado">Otro autorizado</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="ret-motivo">Motivo del retiro</label>
+            <select id="ret-motivo">
+              <option value="Enfermedad">Enfermedad</option>
+              <option value="Hora médica">Hora médica</option>
+              <option value="Trámites administrativos">Trámites administrativos</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="ret-justificado">¿Retiro justificado?</label>
+            <select id="ret-justificado">
+              <option value="Sí">Sí</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label for="ret-obs">Observaciones (opcional)</label>
+            <textarea id="ret-obs" placeholder="Detalle adicional si corresponde"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" id="retiroResetBtn">Limpiar formulario</button>
+            <button type="submit" class="btn btn-primary">Registrar y generar PDF</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card" id="retiroAlumnoHistCard" style="display:none;">
+        <h2 class="section-title" style="font-size:15px;">Retiros del alumno durante el año <span id="retiroAlumnoAnio" class="tag"></span></h2>
+        <div class="alumno-hist-summary">
+          <span id="retiroAlumnoNombre"></span>
+          <span class="alumno-hist-total" id="retiroAlumnoTotal">0 retiros</span>
+        </div>
+        <div class="month-grid" id="retiroAlumnoMeses"></div>
+      </div>
+
+      <div class="card">
+        <div class="note">Al registrar el retiro se generará un comprobante en PDF con folio correlativo, el cual debe ser <strong>impreso y firmado de forma manuscrita por el apoderado</strong> (quien retira al alumno) en el establecimiento. El documento incluye una declaración de responsabilidad del apoderado y advierte sobre la pérdida de cobertura del Seguro Escolar durante el retiro.</div>
+      </div>
+    </div>
+
+    <!-- Historial -->
+    <div id="sub-retiro-historial" style="display:none;">
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Folio</th><th>Fecha</th><th>Hora</th><th>Curso</th><th>Alumno</th>
+                <th>Retira</th><th>Motivo</th><th>Justificado</th><th class="no-print">PDF</th>
+              </tr>
+            </thead>
+            <tbody id="retiroHistBody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="retiroHistEmpty" style="display:none;">
+          <span class="glyph">🚪</span>
+          Aún no hay retiros registrados en este año.
+        </div>
+      </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div id="sub-retiro-stats" style="display:none;">
+      <div class="card">
+        <h2 class="section-title" style="font-size:15px;">Filtro por rango de fechas</h2>
+        <div class="grid-2">
+          <div class="field">
+            <label for="ret-stat-desde">Desde</label>
+            <input type="date" id="ret-stat-desde">
+          </div>
+          <div class="field">
+            <label for="ret-stat-hasta">Hasta</label>
+            <input type="date" id="ret-stat-hasta">
+          </div>
+        </div>
+        <div class="form-actions" style="justify-content:space-between;">
+          <button class="btn btn-ghost" id="retiroStatResetBtn">Ver todo el año</button>
+          <button class="btn btn-gold" id="retiroStatPdfBtn">Generar presentación gerencial (PDF)</button>
+        </div>
+      </div>
+
+      <div class="card empty-state" id="retiroStatNoData" style="display:none;">
+        <span class="glyph">📊</span>No hay retiros registrados en el rango de fechas seleccionado.
+      </div>
+
+      <div id="retiroStatContent">
+        <div class="report-grid">
+          <div class="stat-card"><div class="stat-label">Total de retiros</div><div class="stat-value" id="retKpiTotal">0</div></div>
+          <div class="stat-card"><div class="stat-label">Retiros justificados</div><div class="stat-value" id="retKpiJust">0%</div></div>
+          <div class="stat-card"><div class="stat-label">Retiros no justificados</div><div class="stat-value" id="retKpiNoJust">0%</div></div>
+          <div class="stat-card"><div class="stat-label">Motivo más frecuente</div><div class="stat-value" style="font-size:16px;" id="retKpiMotivo">-</div></div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title" style="font-size:15px;">Retiros por motivo</h2>
+          <canvas id="retChartMotivo" class="stat-canvas"></canvas>
+        </div>
+        <div class="card">
+          <h2 class="section-title" style="font-size:15px;">Justificado vs. no justificado</h2>
+          <canvas id="retChartJust" class="stat-canvas" style="max-height:220px;"></canvas>
+        </div>
+        <div class="card">
+          <h2 class="section-title" style="font-size:15px;">Retiros por curso</h2>
+          <canvas id="retChartCurso" class="stat-canvas"></canvas>
+        </div>
+        <div class="card">
+          <h2 class="section-title" style="font-size:15px;">Evolución de retiros por fecha</h2>
+          <canvas id="retChartFecha" class="stat-canvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== AUDITORÍA ===================== -->
   <section class="panel" id="panel-auditoria">
     <h2 class="section-title">Auditoría <span class="tag">Actividad de usuarios</span></h2>
@@ -846,8 +1112,9 @@
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
     getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, deleteField,
-    onSnapshot, query, orderBy, serverTimestamp
+    onSnapshot, query, orderBy, serverTimestamp, runTransaction
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm";
 
   // ---------- Configuración de Firebase ----------
   // Reemplace estos valores por los de su proyecto (Consola Firebase ▸
@@ -881,6 +1148,7 @@
 
   let records = [];
   let auditLog = [];
+  let retiros = [];
   let currentUserName = null;
   let letterEdited = false;
   let db = null;
@@ -923,6 +1191,33 @@
       renderAuditoria();
     }, err=>{
       console.error(err);
+    });
+  }
+
+  // ---------- Retiro de estudiantes (Firestore, en tiempo real) ----------
+  function watchRetiros(){
+    const q = query(collection(db,'retiros'), orderBy('creadoEn','desc'));
+    onSnapshot(q, snap=>{
+      retiros = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      renderRetiroHistorial();
+      renderRetiroStats();
+      actualizarHistorialAlumno();
+    }, err=>{
+      console.error(err);
+      showToast('No se pudo conectar con los registros de retiro.');
+    });
+  }
+
+  // Folio correlativo por año escolar, generado de forma atómica para
+  // evitar que dos personas registrando al mismo tiempo obtengan el
+  // mismo número.
+  async function nextFolioRetiro(anio){
+    const ref = doc(db, 'contadores', 'retiros_'+anio);
+    return await runTransaction(db, async (tx)=>{
+      const snap = await tx.get(ref);
+      const siguiente = (snap.exists() ? (snap.data().ultimo||0) : 0) + 1;
+      tx.set(ref, { ultimo: siguiente }, { merge:true });
+      return siguiente;
     });
   }
 
@@ -1037,6 +1332,9 @@
     localStorage.setItem(ANIO_KEY, anioSelect.value);
     renderAll();
     renderAuditoria();
+    renderRetiroHistorial();
+    renderRetiroStats();
+    actualizarHistorialAlumno();
   });
   function anioDeRegistro(r){
     // Registros creados antes de tener el campo "anio" no lo tienen guardado;
@@ -1046,6 +1344,12 @@
   }
   function recordsDelAnio(){
     return records.filter(r=>anioDeRegistro(r)===anioSelect.value);
+  }
+  function anioDeRetiro(r){
+    return r.anio || (r.fecha ? r.fecha.slice(0,4) : null);
+  }
+  function retirosDelAnio(){
+    return retiros.filter(r=>anioDeRetiro(r)===anioSelect.value);
   }
 
   // ---------- Form submit ----------
@@ -1436,6 +1740,435 @@
     });
   }
 
+  // ---------- Retiro de estudiantes: PDF del comprobante ----------
+  function getCrestDataUrl(){
+    const img = document.querySelector('.crest img');
+    return img && img.src ? img.src : null;
+  }
+
+  function buildRetiroPDF(rec){
+    const pdf = new jsPDF({ unit:'mm', format:'letter' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const crest = getCrestDataUrl();
+    if(crest){ try{ pdf.addImage(crest, 'PNG', 15, 10, 16, 22); }catch(e){} }
+
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(13);
+    pdf.text('I. Comercial Alberto Valenzuela Llanos', pageW/2, 17, { align:'center' });
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(10);
+    pdf.text('San Fernando', pageW/2, 23, { align:'center' });
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(14);
+    pdf.text('COMPROBANTE DE RETIRO DE ESTUDIANTE', pageW/2, 34, { align:'center' });
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(11);
+    pdf.text(`Folio N° ${String(rec.folio).padStart(5,'0')} — Año ${rec.anio}`, pageW/2, 41, { align:'center' });
+
+    let y = 54;
+    const filas = [
+      ['Fecha de retiro', fmtDate(rec.fecha)],
+      ['Hora de retiro', rec.hora || '—'],
+      ['Alumno(a)', rec.alumno || '—'],
+      ['Curso', rec.curso || '—'],
+      ['Retira', rec.retira || '—'],
+      ['Relación con el alumno', rec.relacion || '—'],
+      ['Motivo del retiro', rec.motivo || '—'],
+      ['¿Retiro justificado?', rec.justificado || '—'],
+      ['Observaciones', rec.observaciones || '—'],
+      ['Registrado por', rec.creadoPor || '—']
+    ];
+    pdf.setFontSize(10.5);
+    filas.forEach(([label,val])=>{
+      pdf.setFont('helvetica','bold');
+      pdf.text(label+':', 18, y);
+      pdf.setFont('helvetica','normal');
+      const lineas = pdf.splitTextToSize(String(val), 118);
+      pdf.text(lineas, 72, y);
+      y += 7 * lineas.length;
+    });
+
+    y += 6;
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(10.5);
+    pdf.text('Declaración de responsabilidad', 18, y); y += 6;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(9.5);
+    const declaracion = 'Quien firma este documento declara ser la persona autorizada para retirar al alumno(a) individualizado(a) durante la jornada escolar, y asume la responsabilidad por su cuidado desde el momento del retiro.';
+    pdf.text(pdf.splitTextToSize(declaracion, pageW-36), 18, y);
+    y += 16;
+
+    pdf.setFont('helvetica','bold'); pdf.setTextColor(184,50,47);
+    pdf.text('IMPORTANTE:', 18, y);
+    pdf.setFont('helvetica','normal'); pdf.setTextColor(0,0,0);
+    const seguro = 'A partir del retiro, el(la) estudiante deja de estar bajo la cobertura del Seguro Escolar del establecimiento.';
+    y += 5;
+    pdf.text(pdf.splitTextToSize(seguro, pageW-36), 18, y);
+
+    y += 32;
+    pdf.line(30, y, pageW-30, y);
+    y += 5;
+    pdf.setFontSize(9.5);
+    pdf.text('Firma de quien retira al alumno(a)', pageW/2, y, { align:'center' });
+
+    pdf.save(`Retiro_${String(rec.folio).padStart(5,'0')}_${(rec.alumno||'').replace(/\s+/g,'_')}.pdf`);
+  }
+
+  // ---------- Retiro de estudiantes: historial del alumno ----------
+  const NOMBRES_MES_CORTO = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+  function actualizarHistorialAlumno(){
+    const card = document.getElementById('retiroAlumnoHistCard');
+    const alumnoInput = document.getElementById('ret-alumno');
+    if(!card || !alumnoInput) return;
+    const nombre = alumnoInput.value.trim();
+    if(!nombre){ card.style.display = 'none'; return; }
+
+    const delAlumno = retirosDelAnio().filter(r=>(r.alumno||'').trim().toLowerCase() === nombre.toLowerCase());
+    card.style.display = '';
+    document.getElementById('retiroAlumnoAnio').textContent = anioSelect.value;
+    document.getElementById('retiroAlumnoNombre').textContent = nombre;
+    document.getElementById('retiroAlumnoTotal').textContent = `${delAlumno.length} retiro${delAlumno.length===1?'':'s'}`;
+
+    const meses = new Array(12).fill(0);
+    delAlumno.forEach(r=>{
+      if(r.fecha){
+        const m = parseInt(r.fecha.slice(5,7),10) - 1;
+        if(m>=0 && m<12) meses[m]++;
+      }
+    });
+    document.getElementById('retiroAlumnoMeses').innerHTML = meses.map((n,i)=>`
+      <div class="month-box${n>0?' has-data':''}">
+        <span class="month-name">${NOMBRES_MES_CORTO[i]}</span>
+        <span class="month-count">${n}</span>
+      </div>
+    `).join('');
+  }
+
+  // ---------- Retiro de estudiantes: historial general ----------
+  function renderRetiroHistorial(){
+    const body = document.getElementById('retiroHistBody');
+    const empty = document.getElementById('retiroHistEmpty');
+    if(!body) return;
+    const rows = retirosDelAnio().slice().sort((a,b)=>(b.folio||0)-(a.folio||0));
+    if(rows.length===0){
+      body.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    body.innerHTML = rows.map(r=>`
+      <tr>
+        <td>${String(r.folio||0).padStart(5,'0')}</td>
+        <td>${fmtDate(r.fecha)}</td>
+        <td>${escapeHtml(r.hora||'—')}</td>
+        <td>${escapeHtml(r.curso||'—')}</td>
+        <td>${escapeHtml(r.alumno||'—')}</td>
+        <td>${escapeHtml(r.retira||'—')}</td>
+        <td>${escapeHtml(r.motivo||'—')}</td>
+        <td><span class="pill ${r.justificado==='Sí'?'pill-ok':'pill-no'}">${escapeHtml(r.justificado||'—')}</span></td>
+        <td class="no-print"><button type="button" class="icon-btn" title="Descargar PDF" data-retiro-pdf="${r.id}">📄</button></td>
+      </tr>
+    `).join('');
+  }
+
+  document.getElementById('retiroHistBody').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-retiro-pdf]');
+    if(!btn) return;
+    const rec = retiros.find(r=>r.id===btn.dataset.retiroPdf);
+    if(rec) buildRetiroPDF(rec);
+  });
+
+  // ---------- Retiro de estudiantes: estadísticas y gráficos ----------
+  const CHART_COLORS = ['#0e0e5c','#f2c118','#c99a06','#1a1a7a','#b8322f','#1f7a4d','#54546b','#fbe6a3'];
+
+  function setupCanvas(canvas){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.parentElement.clientWidth || 360;
+    const h = 220;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w+'px';
+    canvas.style.height = h+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+    return { ctx, w, h };
+  }
+
+  function drawSinDatos(ctx,w,h){
+    ctx.fillStyle = '#54546b';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Sin datos', w/2, h/2);
+  }
+
+  function drawBarChart(canvas, entries){
+    const { ctx, w, h } = setupCanvas(canvas);
+    if(!entries.length){ drawSinDatos(ctx,w,h); return; }
+    const max = Math.max(...entries.map(e=>e[1]), 1);
+    const padL=8, padR=8, padT=14, padB=30;
+    const chartW = w-padL-padR, chartH = h-padT-padB;
+    const gap = 10;
+    const barW = Math.max(12, (chartW - gap*(entries.length-1)) / entries.length);
+    entries.forEach(([label,val],i)=>{
+      const x = padL + i*(barW+gap);
+      const barH = (val/max) * chartH;
+      const y = padT + (chartH-barH);
+      ctx.fillStyle = CHART_COLORS[i % CHART_COLORS.length];
+      ctx.fillRect(x, y, barW, barH);
+      ctx.fillStyle = '#1c1c2e';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(String(val), x+barW/2, y-4);
+      const corta = String(label).length>10 ? String(label).slice(0,9)+'…' : String(label);
+      ctx.fillText(corta, x+barW/2, h-10);
+    });
+  }
+
+  function drawDonutChart(canvas, entries){
+    const { ctx, w, h } = setupCanvas(canvas);
+    const total = entries.reduce((s,e)=>s+e[1],0);
+    if(!total){ drawSinDatos(ctx,w,h); return; }
+    const legendH = 22;
+    const cx = w/2, cy = (h-legendH)/2 + 6, r = Math.min(w, h-legendH)/2 - 12, rInner = r*0.55;
+    let start = -Math.PI/2;
+    entries.forEach(([,val],i)=>{
+      const slice = (val/total) * Math.PI*2;
+      ctx.beginPath();
+      ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,r,start,start+slice);
+      ctx.closePath();
+      ctx.fillStyle = CHART_COLORS[i % CHART_COLORS.length];
+      ctx.fill();
+      start += slice;
+    });
+    ctx.beginPath();
+    ctx.arc(cx,cy,rInner,0,Math.PI*2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.fillStyle = '#1c1c2e';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(total), cx, cy+5);
+
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'left';
+    let lx = 10;
+    const ly = h-8;
+    entries.forEach(([label,val],i)=>{
+      ctx.fillStyle = CHART_COLORS[i % CHART_COLORS.length];
+      ctx.fillRect(lx, ly-9, 9, 9);
+      ctx.fillStyle = '#1c1c2e';
+      const texto = `${label} (${val})`;
+      ctx.fillText(texto, lx+13, ly);
+      lx += ctx.measureText(texto).width + 26;
+    });
+  }
+
+  function drawLineChart(canvas, entries){
+    const { ctx, w, h } = setupCanvas(canvas);
+    if(!entries.length){ drawSinDatos(ctx,w,h); return; }
+    const max = Math.max(...entries.map(e=>e[1]), 1);
+    const padL=26, padR=12, padT=14, padB=28;
+    const chartW = w-padL-padR, chartH = h-padT-padB;
+    ctx.strokeStyle = '#dcdbe6';
+    ctx.beginPath();
+    ctx.moveTo(padL, padT); ctx.lineTo(padL, padT+chartH); ctx.lineTo(padL+chartW, padT+chartH);
+    ctx.stroke();
+    const stepX = entries.length>1 ? chartW/(entries.length-1) : 0;
+    ctx.beginPath();
+    entries.forEach(([,val],i)=>{
+      const x = padL + i*stepX;
+      const y = padT + chartH - (val/max)*chartH;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.strokeStyle = '#0e0e5c';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#f2c118';
+    entries.forEach(([,val],i)=>{
+      const x = padL + i*stepX;
+      const y = padT + chartH - (val/max)*chartH;
+      ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+    });
+    ctx.fillStyle = '#54546b';
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'center';
+    const cadaCuanto = Math.max(1, Math.ceil(entries.length/6));
+    entries.forEach(([fecha],i)=>{
+      if(i % cadaCuanto === 0 || i === entries.length-1){
+        const x = padL + i*stepX;
+        ctx.fillText(fmtDate(fecha).slice(0,5), x, h-10);
+      }
+    });
+  }
+
+  function retirosEnRango(){
+    const desde = document.getElementById('ret-stat-desde').value;
+    const hasta = document.getElementById('ret-stat-hasta').value;
+    return retirosDelAnio().filter(r=>{
+      if(desde && r.fecha < desde) return false;
+      if(hasta && r.fecha > hasta) return false;
+      return true;
+    });
+  }
+
+  function renderRetiroStats(){
+    const noData = document.getElementById('retiroStatNoData');
+    const content = document.getElementById('retiroStatContent');
+    if(!noData || !content) return;
+    const rows = retirosEnRango();
+    if(rows.length===0){
+      noData.style.display = 'block';
+      content.style.display = 'none';
+      return;
+    }
+    noData.style.display = 'none';
+    content.style.display = '';
+
+    const total = rows.length;
+    const just = rows.filter(r=>r.justificado==='Sí').length;
+    const noJust = total - just;
+    document.getElementById('retKpiTotal').textContent = total;
+    document.getElementById('retKpiJust').textContent = Math.round((just/total)*100)+'%';
+    document.getElementById('retKpiNoJust').textContent = Math.round((noJust/total)*100)+'%';
+
+    const porMotivo = {};
+    rows.forEach(r=>{ const m=r.motivo||'Otro'; porMotivo[m]=(porMotivo[m]||0)+1; });
+    const motivoTop = Object.entries(porMotivo).sort((a,b)=>b[1]-a[1])[0];
+    document.getElementById('retKpiMotivo').textContent = motivoTop ? motivoTop[0] : '-';
+
+    const porCurso = {};
+    rows.forEach(r=>{ const c=r.curso||'—'; porCurso[c]=(porCurso[c]||0)+1; });
+
+    const porFecha = {};
+    rows.forEach(r=>{ if(r.fecha) porFecha[r.fecha]=(porFecha[r.fecha]||0)+1; });
+    const fechasOrdenadas = Object.keys(porFecha).sort();
+
+    drawBarChart(document.getElementById('retChartMotivo'), Object.entries(porMotivo));
+    drawDonutChart(document.getElementById('retChartJust'), [['Justificado',just],['No justificado',noJust]]);
+    drawBarChart(document.getElementById('retChartCurso'), Object.entries(porCurso));
+    drawLineChart(document.getElementById('retChartFecha'), fechasOrdenadas.map(f=>[f, porFecha[f]]));
+  }
+
+  function buildRetiroExecutivePDF(){
+    const rows = retirosEnRango();
+    if(rows.length===0){ showToast('No hay retiros en el rango seleccionado para generar el informe.'); return; }
+    const total = rows.length;
+    const just = rows.filter(r=>r.justificado==='Sí').length;
+    const noJust = total - just;
+    const desde = document.getElementById('ret-stat-desde').value;
+    const hasta = document.getElementById('ret-stat-hasta').value;
+
+    const pdf = new jsPDF({ unit:'mm', format:'letter' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const crest = getCrestDataUrl();
+    if(crest){ try{ pdf.addImage(crest, 'PNG', 15, 10, 15, 20); }catch(e){} }
+
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(15);
+    pdf.text('Informe de Retiros de Estudiantes', pageW/2, 18, { align:'center' });
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(10);
+    pdf.text('I. Comercial Alberto Valenzuela Llanos — San Fernando', pageW/2, 25, { align:'center' });
+    pdf.text(`Año ${anioSelect.value}${(desde||hasta) ? ` · ${desde?fmtDate(desde):'inicio'} a ${hasta?fmtDate(hasta):'hoy'}` : ''}`, pageW/2, 31, { align:'center' });
+
+    let y = 44;
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(11);
+    pdf.text('Resumen', 18, y); y += 8;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(10.5);
+    [
+      `Total de retiros: ${total}`,
+      `Retiros justificados: ${just} (${Math.round((just/total)*100)}%)`,
+      `Retiros no justificados: ${noJust} (${Math.round((noJust/total)*100)}%)`
+    ].forEach(linea=>{ pdf.text(linea, 18, y); y += 7; });
+    y += 4;
+
+    [
+      ['retChartMotivo','Retiros por motivo'],
+      ['retChartJust','Justificado vs. no justificado'],
+      ['retChartCurso','Retiros por curso'],
+      ['retChartFecha','Evolución de retiros por fecha']
+    ].forEach(([id,titulo])=>{
+      const canvas = document.getElementById(id);
+      if(!canvas) return;
+      if(y > 235){ pdf.addPage(); y = 20; }
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(10.5);
+      pdf.text(titulo, 18, y); y += 5;
+      try{
+        const img = canvas.toDataURL('image/png');
+        const imgW = pageW-36;
+        const imgH = Math.min(imgW * (canvas.height/canvas.width) * 0.5, 70);
+        pdf.addImage(img, 'PNG', 18, y, imgW, imgH);
+        y += imgH + 10;
+      }catch(e){ y += 10; }
+    });
+
+    pdf.save(`Informe_Retiros_${anioSelect.value}.pdf`);
+  }
+
+  // ---------- Retiro de estudiantes: formulario y sub-pestañas ----------
+  document.getElementById('ret-fecha').valueAsDate = new Date();
+  document.getElementById('ret-alumno').addEventListener('input', actualizarHistorialAlumno);
+  document.getElementById('ret-fecha').addEventListener('change', actualizarHistorialAlumno);
+
+  document.getElementById('retiroForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const anio = anioSelect.value;
+    const rec = {
+      fecha: document.getElementById('ret-fecha').value,
+      hora: document.getElementById('ret-hora').value,
+      alumno: document.getElementById('ret-alumno').value.trim(),
+      curso: document.getElementById('ret-curso').value.trim(),
+      retira: document.getElementById('ret-retira').value.trim(),
+      relacion: document.getElementById('ret-relacion').value,
+      motivo: document.getElementById('ret-motivo').value,
+      justificado: document.getElementById('ret-justificado').value,
+      observaciones: document.getElementById('ret-obs').value.trim(),
+      anio,
+      creadoPor: currentUserName,
+      creadoEn: serverTimestamp()
+    };
+    try{
+      const folio = await nextFolioRetiro(anio);
+      rec.folio = folio;
+      await addDoc(collection(db,'retiros'), rec);
+      await logAudit('Registró retiro de estudiante', { nombre: rec.alumno, curso: rec.curso, anio });
+      buildRetiroPDF(rec);
+      document.getElementById('retiroForm').reset();
+      document.getElementById('ret-fecha').valueAsDate = new Date();
+      document.getElementById('retiroAlumnoHistCard').style.display = 'none';
+      showToast('✓ Retiro registrado. Folio N° '+String(folio).padStart(5,'0'));
+    }catch(err){
+      console.error(err);
+      showToast('No se pudo registrar el retiro. Intente nuevamente.');
+    }
+  });
+
+  document.getElementById('retiroResetBtn').addEventListener('click', ()=>{
+    document.getElementById('retiroForm').reset();
+    document.getElementById('ret-fecha').valueAsDate = new Date();
+    document.getElementById('retiroAlumnoHistCard').style.display = 'none';
+  });
+
+  document.getElementById('retiroStatResetBtn').addEventListener('click', ()=>{
+    document.getElementById('ret-stat-desde').value = '';
+    document.getElementById('ret-stat-hasta').value = '';
+    renderRetiroStats();
+  });
+  document.getElementById('retiroStatPdfBtn').addEventListener('click', ()=>{
+    renderRetiroStats();
+    buildRetiroExecutivePDF();
+  });
+  ['ret-stat-desde','ret-stat-hasta'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', renderRetiroStats);
+  });
+
+  document.querySelectorAll('#panel-retiro .subtab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#panel-retiro .subtab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      ['retiro-nuevo','retiro-historial','retiro-stats'].forEach(key=>{
+        document.getElementById('sub-'+key).style.display = (key===btn.dataset.subtab) ? '' : 'none';
+      });
+      if(btn.dataset.subtab==='retiro-historial') renderRetiroHistorial();
+      if(btn.dataset.subtab==='retiro-stats') renderRetiroStats();
+    });
+  });
+
   // ---------- Render all ----------
   function renderAll(){
     populateFilterSelects();
@@ -1547,6 +2280,7 @@
     if(!ready) return;
     watchRecords();
     watchAuditLog();
+    watchRetiros();
     onAuthStateChanged(auth, user=>{
       if(user){ unlockApp(nameForEmail(user.email)); }
       else{ lockApp(); }
