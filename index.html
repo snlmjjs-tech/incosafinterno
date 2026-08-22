@@ -722,6 +722,7 @@
     <button data-tab="establecimiento">Reporte establecimiento</button>
     <button data-tab="citacion">Carta de citación</button>
     <button data-tab="retiro">Retiro de estudiantes</button>
+    <button data-tab="atencion">Atención a la comunidad</button>
     <button data-tab="auditoria">Auditoría</button>
   </nav>
 </div>
@@ -1079,6 +1080,164 @@
     </div>
   </section>
 
+  <!-- ===================== ATENCIÓN A LA COMUNIDAD ===================== -->
+  <section class="panel" id="panel-atencion">
+    <h2 class="section-title">Atención a la comunidad educativa <span class="tag">Alumnos y apoderados</span></h2>
+    <p class="section-desc">Registre entrevistas y atenciones a alumnos, apoderados y funcionarios, y genere el comprobante en PDF con folio correlativo.</p>
+
+    <div class="subtabs no-print">
+      <button class="subtab-btn active" data-subtab="atencion-nueva">Nueva atención</button>
+      <button class="subtab-btn" data-subtab="atencion-registro">Registro de folios</button>
+      <button class="subtab-btn" data-subtab="atencion-informes">Informes</button>
+    </div>
+
+    <!-- Nueva atención -->
+    <div id="sub-atencion-nueva">
+      <div class="card">
+        <form id="atencionForm">
+          <div class="field full">
+            <label for="at-tipo">Tipo de atención</label>
+            <select id="at-tipo" required>
+              <option value="">Seleccione tipo…</option>
+              <option value="Justificación de inasistencia">Justificación de inasistencia</option>
+              <option value="Justificación de atraso">Justificación de atraso</option>
+              <option value="Situación disciplinaria">Situación disciplinaria</option>
+              <option value="Trámite administrativo">Trámite administrativo</option>
+              <option value="Orientación / consulta general">Orientación / consulta general</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="at-fecha">Fecha</label>
+            <input type="date" id="at-fecha" required>
+          </div>
+          <div class="field">
+            <label for="at-hora">Hora</label>
+            <input type="time" id="at-hora">
+          </div>
+          <div class="field">
+            <label for="at-funcionario">Atendido por (funcionario)</label>
+            <input type="text" id="at-funcionario" placeholder="Nombre y cargo" required>
+          </div>
+          <div class="field">
+            <label for="at-calidad">Calidad del asistente</label>
+            <select id="at-calidad" required>
+              <option value="">Seleccione…</option>
+              <option>Alumno(a)</option>
+              <option>Apoderado(a)</option>
+              <option>Apoderado(a) y alumno(a)</option>
+              <option>Docente</option>
+              <option>Asistente de la educación</option>
+              <option>Funcionario(a) administrativo</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="at-nombre">Nombre completo</label>
+            <input type="text" id="at-nombre" placeholder="Nombre del/los asistente(s)" required>
+          </div>
+          <div class="field">
+            <label for="at-rut">RUT (opcional)</label>
+            <input type="text" id="at-rut" placeholder="Ej: 12.345.678-9">
+          </div>
+          <div class="field">
+            <label for="at-alumno">Alumno(a) relacionado (si aplica)</label>
+            <input type="text" id="at-alumno" placeholder="Nombre del alumno">
+          </div>
+          <div class="field">
+            <label for="at-curso">Curso / Estamento</label>
+            <input type="text" id="at-curso" placeholder="Ej: 3° Medio B, o 'Docente', 'Administración'" required>
+          </div>
+          <div class="field full">
+            <label for="at-motivo">Motivo / descripción de la atención</label>
+            <textarea id="at-motivo" maxlength="500" placeholder="Describa el motivo de la entrevista o atención" required></textarea>
+            <div class="helptext"><span id="at-motivo-count">0</span>/500 caracteres</div>
+          </div>
+          <div class="field full">
+            <label for="at-acuerdos">Acuerdos / compromisos (opcional)</label>
+            <textarea id="at-acuerdos" maxlength="300" placeholder="Acuerdos adoptados, si corresponde"></textarea>
+            <div class="helptext"><span id="at-acuerdos-count">0</span>/300 caracteres</div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" id="atencionResetBtn">Limpiar formulario</button>
+            <button type="submit" class="btn btn-primary">Registrar y generar PDF</button>
+          </div>
+        </form>
+      </div>
+      <div class="card">
+        <div class="note">Al registrar la atención se generará un comprobante en PDF con folio correlativo. Cuando el protocolo del área lo requiera, imprima el documento para que quede firmado por la(s) persona(s) atendida(s) y por el funcionario responsable.</div>
+      </div>
+    </div>
+
+    <!-- Registro de folios -->
+    <div id="sub-atencion-registro" style="display:none;">
+      <div class="toolbar no-print">
+        <div class="field grow">
+          <label>Buscar por nombre, folio, curso o alumno</label>
+          <input type="text" id="atRegistroBuscar" placeholder="Escriba para filtrar…">
+        </div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Folio</th><th>Fecha</th><th>Tipo</th><th>Asistente</th>
+                <th>Curso / Estamento</th><th>Atendido por</th><th class="no-print">PDF</th>
+              </tr>
+            </thead>
+            <tbody id="atencionRegistroBody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="atencionRegistroEmpty" style="display:none;">
+          <span class="glyph">🗂️</span>
+          Aún no hay atenciones registradas en este año.
+        </div>
+      </div>
+    </div>
+
+    <!-- Informes -->
+    <div id="sub-atencion-informes" style="display:none;">
+      <div class="card">
+        <h2 class="section-title" style="font-size:15px;">Filtro por rango de fechas</h2>
+        <div class="grid-2">
+          <div class="field">
+            <label for="at-inf-desde">Desde</label>
+            <input type="date" id="at-inf-desde">
+          </div>
+          <div class="field">
+            <label for="at-inf-hasta">Hasta</label>
+            <input type="date" id="at-inf-hasta">
+          </div>
+        </div>
+        <div class="form-actions" style="justify-content:space-between;">
+          <button class="btn btn-ghost" id="atInformeResetBtn">Ver todo el año</button>
+          <button class="btn btn-gold" id="atInformePdfBtn">Generar informe (PDF)</button>
+        </div>
+      </div>
+
+      <div class="card empty-state" id="atInformeNoData" style="display:none;">
+        <span class="glyph">📊</span>No hay atenciones registradas en el rango de fechas seleccionado.
+      </div>
+
+      <div id="atInformeContent">
+        <div class="report-grid">
+          <div class="stat-card"><div class="stat-label">Total de atenciones</div><div class="stat-value" id="atKpiTotal">0</div></div>
+          <div class="stat-card"><div class="stat-label">Situaciones distintas</div><div class="stat-value" id="atKpiTipos">0</div></div>
+          <div class="stat-card"><div class="stat-label">Cursos / estamentos involucrados</div><div class="stat-value" id="atKpiCursos">0</div></div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title" style="font-size:15px;">Atenciones por situación (tipo de atención)</h2>
+          <canvas id="atChartTipo" class="stat-canvas"></canvas>
+        </div>
+        <div class="card">
+          <h2 class="section-title" style="font-size:15px;">Atenciones por curso / estamento</h2>
+          <canvas id="atChartCurso" class="stat-canvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== AUDITORÍA ===================== -->
   <section class="panel" id="panel-auditoria">
     <h2 class="section-title">Auditoría <span class="tag">Actividad de usuarios</span></h2>
@@ -1149,6 +1308,7 @@
   let records = [];
   let auditLog = [];
   let retiros = [];
+  let atenciones = [];
   let currentUserName = null;
   let letterEdited = false;
   let db = null;
@@ -1213,6 +1373,31 @@
   // mismo número.
   async function nextFolioRetiro(anio){
     const ref = doc(db, 'contadores', 'retiros_'+anio);
+    return await runTransaction(db, async (tx)=>{
+      const snap = await tx.get(ref);
+      const siguiente = (snap.exists() ? (snap.data().ultimo||0) : 0) + 1;
+      tx.set(ref, { ultimo: siguiente }, { merge:true });
+      return siguiente;
+    });
+  }
+
+  // ---------- Atención a la comunidad (Firestore, en tiempo real) ----------
+  function watchAtenciones(){
+    const q = query(collection(db,'atenciones'), orderBy('creadoEn','desc'));
+    onSnapshot(q, snap=>{
+      atenciones = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      renderAtencionRegistro();
+      renderAtencionInformes();
+    }, err=>{
+      console.error(err);
+      showToast('No se pudo conectar con los registros de atención.');
+    });
+  }
+
+  // Folio correlativo por año escolar, propio de esta sección (independiente
+  // del contador de retiros), generado de forma atómica.
+  async function nextFolioAtencion(anio){
+    const ref = doc(db, 'contadores', 'atenciones_'+anio);
     return await runTransaction(db, async (tx)=>{
       const snap = await tx.get(ref);
       const siguiente = (snap.exists() ? (snap.data().ultimo||0) : 0) + 1;
@@ -1335,6 +1520,8 @@
     renderRetiroHistorial();
     renderRetiroStats();
     actualizarHistorialAlumno();
+    renderAtencionRegistro();
+    renderAtencionInformes();
   });
   function anioDeRegistro(r){
     // Registros creados antes de tener el campo "anio" no lo tienen guardado;
@@ -1350,6 +1537,12 @@
   }
   function retirosDelAnio(){
     return retiros.filter(r=>anioDeRetiro(r)===anioSelect.value);
+  }
+  function anioDeAtencion(r){
+    return r.anio || (r.fecha ? r.fecha.slice(0,4) : null);
+  }
+  function atencionesDelAnio(){
+    return atenciones.filter(r=>anioDeAtencion(r)===anioSelect.value);
   }
 
   // ---------- Form submit ----------
@@ -2169,6 +2362,268 @@
     });
   });
 
+  // ---------- Atención a la comunidad: PDF del comprobante ----------
+  function buildAtencionPDF(rec){
+    const pdf = new jsPDF({ unit:'mm', format:'letter' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const crest = getCrestDataUrl();
+    if(crest){ try{ pdf.addImage(crest, 'PNG', 15, 10, 16, 22); }catch(e){} }
+
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(13);
+    pdf.text('I. Comercial Alberto Valenzuela Llanos', pageW/2, 17, { align:'center' });
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(10);
+    pdf.text('San Fernando', pageW/2, 23, { align:'center' });
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(14);
+    pdf.text('COMPROBANTE DE ATENCIÓN A LA COMUNIDAD EDUCATIVA', pageW/2, 34, { align:'center' });
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(11);
+    pdf.text(`Folio N° ${String(rec.folio).padStart(6,'0')} — Año ${rec.anio}`, pageW/2, 41, { align:'center' });
+
+    let y = 54;
+    const filas = [
+      ['Tipo de atención', rec.tipo || '—'],
+      ['Fecha', fmtDate(rec.fecha)],
+      ['Hora', rec.hora || '—'],
+      ['Atendido por', rec.funcionario || '—'],
+      ['Calidad del asistente', rec.calidad || '—'],
+      ['Nombre completo', rec.nombre || '—'],
+      ['RUT', rec.rut || '—'],
+      ['Alumno(a) relacionado', rec.alumno || '—'],
+      ['Curso / Estamento', rec.curso || '—'],
+      ['Motivo / descripción', rec.motivo || '—'],
+      ['Acuerdos / compromisos', rec.acuerdos || '—'],
+      ['Registrado por', rec.creadoPor || '—']
+    ];
+    pdf.setFontSize(10.5);
+    filas.forEach(([label,val])=>{
+      pdf.setFont('helvetica','bold');
+      pdf.text(label+':', 18, y);
+      pdf.setFont('helvetica','normal');
+      const lineas = pdf.splitTextToSize(String(val), 112);
+      pdf.text(lineas, 78, y);
+      y += 7 * lineas.length;
+    });
+
+    y += 12;
+    if(y > 230) y = 230;
+    pdf.line(18, y, 18+72, y);
+    pdf.line(18+90, y, 18+90+72, y);
+    y += 5;
+    pdf.setFontSize(9.5); pdf.setFont('helvetica','normal');
+    pdf.text('Firma persona(s) atendida(s)', 18, y);
+    pdf.text('Firma funcionario responsable', 18+90, y);
+    y += 5;
+    pdf.text(rec.nombre || '', 18, y);
+    pdf.text(rec.funcionario || '', 18+90, y);
+
+    pdf.save(`Folio_${String(rec.folio).padStart(6,'0')}_${rec.anio}_${(rec.nombre||'atencion').replace(/\s+/g,'_')}.pdf`);
+  }
+
+  // ---------- Atención a la comunidad: contadores de caracteres ----------
+  function wireCounter(fieldId, counterId){
+    const field = document.getElementById(fieldId);
+    const counter = document.getElementById(counterId);
+    const update = ()=>{ counter.textContent = field.value.length; };
+    field.addEventListener('input', update);
+    update();
+  }
+  wireCounter('at-motivo', 'at-motivo-count');
+  wireCounter('at-acuerdos', 'at-acuerdos-count');
+  document.getElementById('at-fecha').valueAsDate = new Date();
+
+  // ---------- Atención a la comunidad: registro de folios ----------
+  function renderAtencionRegistro(){
+    const body = document.getElementById('atencionRegistroBody');
+    const empty = document.getElementById('atencionRegistroEmpty');
+    if(!body) return;
+    const busqueda = (document.getElementById('atRegistroBuscar').value||'').trim().toLowerCase();
+    const rows = atencionesDelAnio()
+      .filter(r=>!busqueda || [r.nombre,r.alumno,r.curso,String(r.folio||'')].join(' ').toLowerCase().includes(busqueda))
+      .slice().sort((a,b)=>(b.folio||0)-(a.folio||0));
+    if(rows.length===0){
+      body.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    body.innerHTML = rows.map(r=>`
+      <tr>
+        <td>${String(r.folio||0).padStart(6,'0')}</td>
+        <td>${fmtDate(r.fecha)}</td>
+        <td>${escapeHtml(r.tipo||'—')}</td>
+        <td>${escapeHtml(r.nombre||'—')}</td>
+        <td>${escapeHtml(r.curso||'—')}</td>
+        <td>${escapeHtml(r.funcionario||'—')}</td>
+        <td class="no-print"><button type="button" class="icon-btn" title="Descargar PDF" data-atencion-pdf="${r.id}">📄</button></td>
+      </tr>
+    `).join('');
+  }
+  document.getElementById('atRegistroBuscar').addEventListener('input', renderAtencionRegistro);
+  document.getElementById('atencionRegistroBody').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-atencion-pdf]');
+    if(!btn) return;
+    const rec = atenciones.find(r=>r.id===btn.dataset.atencionPdf);
+    if(rec) buildAtencionPDF(rec);
+  });
+
+  // ---------- Atención a la comunidad: informes ----------
+  function atencionesEnRango(){
+    const desde = document.getElementById('at-inf-desde').value;
+    const hasta = document.getElementById('at-inf-hasta').value;
+    return atencionesDelAnio().filter(r=>{
+      if(desde && r.fecha < desde) return false;
+      if(hasta && r.fecha > hasta) return false;
+      return true;
+    });
+  }
+
+  function renderAtencionInformes(){
+    const noData = document.getElementById('atInformeNoData');
+    const content = document.getElementById('atInformeContent');
+    if(!noData || !content) return;
+    const rows = atencionesEnRango();
+    if(rows.length===0){
+      noData.style.display = 'block';
+      content.style.display = 'none';
+      return;
+    }
+    noData.style.display = 'none';
+    content.style.display = '';
+
+    const porTipo = {};
+    rows.forEach(r=>{ const t=r.tipo||'Sin especificar'; porTipo[t]=(porTipo[t]||0)+1; });
+    const porCurso = {};
+    rows.forEach(r=>{ const c=r.curso||'Sin especificar'; porCurso[c]=(porCurso[c]||0)+1; });
+
+    document.getElementById('atKpiTotal').textContent = rows.length;
+    document.getElementById('atKpiTipos').textContent = Object.keys(porTipo).length;
+    document.getElementById('atKpiCursos').textContent = Object.keys(porCurso).length;
+
+    drawBarChart(document.getElementById('atChartTipo'), Object.entries(porTipo));
+    drawBarChart(document.getElementById('atChartCurso'), Object.entries(porCurso));
+  }
+
+  function buildAtencionInformePDF(){
+    const rows = atencionesEnRango();
+    if(rows.length===0){ showToast('No hay atenciones en el rango seleccionado para generar el informe.'); return; }
+    const porTipo = {};
+    rows.forEach(r=>{ const t=r.tipo||'Sin especificar'; porTipo[t]=(porTipo[t]||0)+1; });
+    const porCurso = {};
+    rows.forEach(r=>{ const c=r.curso||'Sin especificar'; porCurso[c]=(porCurso[c]||0)+1; });
+    const desde = document.getElementById('at-inf-desde').value;
+    const hasta = document.getElementById('at-inf-hasta').value;
+
+    const pdf = new jsPDF({ unit:'mm', format:'letter' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const crest = getCrestDataUrl();
+    if(crest){ try{ pdf.addImage(crest, 'PNG', 15, 10, 15, 20); }catch(e){} }
+
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(15);
+    pdf.text('Informe de Atención a la Comunidad Educativa', pageW/2, 18, { align:'center' });
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(10);
+    pdf.text('I. Comercial Alberto Valenzuela Llanos — San Fernando', pageW/2, 25, { align:'center' });
+    pdf.text(`Año ${anioSelect.value}${(desde||hasta) ? ` · ${desde?fmtDate(desde):'inicio'} a ${hasta?fmtDate(hasta):'hoy'}` : ''}`, pageW/2, 31, { align:'center' });
+
+    let y = 44;
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(11);
+    pdf.text('Resumen', 18, y); y += 8;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(10.5);
+    [
+      `Total de atenciones: ${rows.length}`,
+      `Situaciones distintas: ${Object.keys(porTipo).length}`,
+      `Cursos / estamentos involucrados: ${Object.keys(porCurso).length}`
+    ].forEach(linea=>{ pdf.text(linea, 18, y); y += 7; });
+    y += 4;
+
+    [
+      ['atChartTipo','Atenciones por situación (tipo de atención)'],
+      ['atChartCurso','Atenciones por curso / estamento']
+    ].forEach(([id,titulo])=>{
+      const canvas = document.getElementById(id);
+      if(!canvas) return;
+      if(y > 220){ pdf.addPage(); y = 20; }
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(10.5);
+      pdf.text(titulo, 18, y); y += 5;
+      try{
+        const img = canvas.toDataURL('image/png');
+        const imgW = pageW-36;
+        const imgH = Math.min(imgW * (canvas.height/canvas.width) * 0.5, 70);
+        pdf.addImage(img, 'PNG', 18, y, imgW, imgH);
+        y += imgH + 10;
+      }catch(e){ y += 10; }
+    });
+
+    pdf.save(`Informe_Atencion_Comunidad_${anioSelect.value}.pdf`);
+  }
+
+  // ---------- Atención a la comunidad: formulario y sub-pestañas ----------
+  document.getElementById('atencionForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const anio = anioSelect.value;
+    const rec = {
+      tipo: document.getElementById('at-tipo').value,
+      fecha: document.getElementById('at-fecha').value,
+      hora: document.getElementById('at-hora').value,
+      funcionario: document.getElementById('at-funcionario').value.trim(),
+      calidad: document.getElementById('at-calidad').value,
+      nombre: document.getElementById('at-nombre').value.trim(),
+      rut: document.getElementById('at-rut').value.trim(),
+      alumno: document.getElementById('at-alumno').value.trim(),
+      curso: document.getElementById('at-curso').value.trim(),
+      motivo: document.getElementById('at-motivo').value.trim(),
+      acuerdos: document.getElementById('at-acuerdos').value.trim(),
+      anio,
+      creadoPor: currentUserName,
+      creadoEn: serverTimestamp()
+    };
+    try{
+      const folio = await nextFolioAtencion(anio);
+      rec.folio = folio;
+      await addDoc(collection(db,'atenciones'), rec);
+      await logAudit('Registró atención a la comunidad', { nombre: rec.nombre, curso: rec.curso, anio });
+      buildAtencionPDF(rec);
+      document.getElementById('atencionForm').reset();
+      document.getElementById('at-fecha').valueAsDate = new Date();
+      document.getElementById('at-motivo-count').textContent = '0';
+      document.getElementById('at-acuerdos-count').textContent = '0';
+      showToast('✓ Atención registrada. Folio N° '+String(folio).padStart(6,'0'));
+    }catch(err){
+      console.error(err);
+      showToast('No se pudo registrar la atención. Intente nuevamente.');
+    }
+  });
+
+  document.getElementById('atencionResetBtn').addEventListener('click', ()=>{
+    document.getElementById('atencionForm').reset();
+    document.getElementById('at-fecha').valueAsDate = new Date();
+    document.getElementById('at-motivo-count').textContent = '0';
+    document.getElementById('at-acuerdos-count').textContent = '0';
+  });
+
+  document.getElementById('atInformeResetBtn').addEventListener('click', ()=>{
+    document.getElementById('at-inf-desde').value = '';
+    document.getElementById('at-inf-hasta').value = '';
+    renderAtencionInformes();
+  });
+  document.getElementById('atInformePdfBtn').addEventListener('click', ()=>{
+    renderAtencionInformes();
+    buildAtencionInformePDF();
+  });
+  ['at-inf-desde','at-inf-hasta'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', renderAtencionInformes);
+  });
+
+  document.querySelectorAll('#panel-atencion .subtab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#panel-atencion .subtab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      ['atencion-nueva','atencion-registro','atencion-informes'].forEach(key=>{
+        document.getElementById('sub-'+key).style.display = (key===btn.dataset.subtab) ? '' : 'none';
+      });
+      if(btn.dataset.subtab==='atencion-registro') renderAtencionRegistro();
+      if(btn.dataset.subtab==='atencion-informes') renderAtencionInformes();
+    });
+  });
+
   // ---------- Render all ----------
   function renderAll(){
     populateFilterSelects();
@@ -2281,6 +2736,7 @@
     watchRecords();
     watchAuditLog();
     watchRetiros();
+    watchAtenciones();
     onAuthStateChanged(auth, user=>{
       if(user){ unlockApp(nameForEmail(user.email)); }
       else{ lockApp(); }
