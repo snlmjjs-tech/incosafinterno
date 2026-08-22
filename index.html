@@ -723,6 +723,7 @@
     <button data-tab="citacion">Carta de citación</button>
     <button data-tab="retiro">Retiro de estudiantes</button>
     <button data-tab="atencion">Atención a la comunidad</button>
+    <button data-tab="cartas">Compromiso y Condicionalidad</button>
     <button data-tab="auditoria">Auditoría</button>
   </nav>
 </div>
@@ -1238,6 +1239,133 @@
     </div>
   </section>
 
+  <!-- ===================== COMPROMISO Y CONDICIONALIDAD ===================== -->
+  <section class="panel" id="panel-cartas">
+    <h2 class="section-title">Compromiso y Condicionalidad <span class="tag">Cartas institucionales</span></h2>
+    <p class="section-desc">Genere cartas de compromiso de buen comportamiento y de condicionalidad de matrícula, con folio correlativo propio por tipo y año, y cierre anual de los registros.</p>
+
+    <div class="subtabs no-print">
+      <button class="subtab-btn active" data-subtab="cartas-nueva">Nueva carta</button>
+      <button class="subtab-btn" data-subtab="cartas-registro">Registro</button>
+      <button class="subtab-btn" data-subtab="cartas-cierres">Cierres anuales</button>
+    </div>
+
+    <!-- Nueva carta -->
+    <div id="sub-cartas-nueva">
+      <div class="card">
+        <form id="cartaForm">
+          <div class="field full">
+            <label for="carta-tipo">Tipo de carta</label>
+            <select id="carta-tipo" required>
+              <option value="compromiso">Carta de Compromiso de Buen Comportamiento</option>
+              <option value="condicionalidad">Carta de Condicionalidad de Matrícula</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="carta-nombre">Nombre completo del/la estudiante</label>
+            <input type="text" id="carta-nombre" required placeholder="Ej: Javiera Andrea Muñoz Rojas">
+          </div>
+          <div class="field">
+            <label for="carta-rut">RUT del/la estudiante</label>
+            <input type="text" id="carta-rut" required placeholder="12.345.678-9">
+          </div>
+          <div class="field">
+            <label for="carta-curso">Curso</label>
+            <input type="text" id="carta-curso" required placeholder="Ej: 3° Medio B">
+          </div>
+          <div class="field">
+            <label for="carta-apo-nombre">Nombre completo del/la apoderado/a</label>
+            <input type="text" id="carta-apo-nombre" required placeholder="Ej: Marcela Rojas Díaz">
+          </div>
+          <div class="field">
+            <label for="carta-apo-rut">RUT del/la apoderado/a</label>
+            <input type="text" id="carta-apo-rut" required placeholder="8.765.432-1">
+          </div>
+          <div class="field">
+            <label for="carta-fecha">Fecha de emisión</label>
+            <input type="date" id="carta-fecha" required>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" id="cartaResetBtn">Limpiar formulario</button>
+            <button type="submit" class="btn btn-primary">Registrar y generar PDF</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card" id="cartaCondicionalidadFields" style="display:none;">
+        <h2 class="section-title" style="font-size:15px;">Antecedentes de la condicionalidad</h2>
+        <div class="field full">
+          <label for="carta-motivo">Motivo / causal</label>
+          <textarea id="carta-motivo" placeholder="Describa los hechos y conductas que motivan la condicionalidad, conforme al RICE."></textarea>
+        </div>
+        <div class="field full">
+          <label for="carta-articulo">Artículo(s) del RICE invocado(s) (opcional)</label>
+          <input type="text" id="carta-articulo" placeholder="Ej: Art. 34, letra c)">
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="carta-periodo-desde">Período desde</label>
+            <input type="date" id="carta-periodo-desde">
+          </div>
+          <div class="field">
+            <label for="carta-periodo-hasta">Período hasta</label>
+            <input type="date" id="carta-periodo-hasta">
+          </div>
+        </div>
+        <div class="field full">
+          <label for="carta-compromisos">Compromisos específicos (uno por línea, opcional)</label>
+          <textarea id="carta-compromisos" placeholder="Si se deja en blanco, se usará un texto formativo estándar."></textarea>
+        </div>
+        <div class="field full">
+          <label for="carta-observaciones">Observaciones adicionales (opcional)</label>
+          <textarea id="carta-observaciones" placeholder="Antecedentes adicionales, entrevistas previas, derivaciones, etc."></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="note">Al registrar la carta se generará un comprobante en PDF con folio correlativo propio (CC- para compromiso, CD- para condicionalidad). Imprima el documento para que quede firmado por el/la estudiante, su apoderado/a y el representante del establecimiento.</div>
+      </div>
+    </div>
+
+    <!-- Registro -->
+    <div id="sub-cartas-registro" style="display:none;">
+      <div class="toolbar no-print">
+        <div class="field grow">
+          <label>Buscar por nombre, RUT o folio</label>
+          <input type="text" id="cartaRegistroBuscar" placeholder="Escriba para filtrar…">
+        </div>
+        <div class="field">
+          <label>Tipo</label>
+          <select id="cartaRegistroTipo">
+            <option value="todos">Todos</option>
+            <option value="compromiso">Compromiso</option>
+            <option value="condicionalidad">Condicionalidad</option>
+          </select>
+        </div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Folio</th><th>Tipo</th><th>Estudiante</th><th>Curso</th><th>Fecha</th><th>Estado</th><th class="no-print">PDF</th></tr>
+            </thead>
+            <tbody id="cartaRegistroBody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="cartaRegistroEmpty" style="display:none;">
+          <span class="glyph">📜</span>
+          Aún no hay cartas registradas en este año.
+        </div>
+      </div>
+    </div>
+
+    <!-- Cierres anuales -->
+    <div id="sub-cartas-cierres" style="display:none;">
+      <p class="section-desc">Cada 31 de diciembre puede cerrar el año: se guarda un resumen de folios emitidos por tipo y los registros de ese año quedan bloqueados para nuevas cartas.</p>
+      <div class="report-grid" id="cierreGrid"></div>
+    </div>
+  </section>
+
   <!-- ===================== AUDITORÍA ===================== -->
   <section class="panel" id="panel-auditoria">
     <h2 class="section-title">Auditoría <span class="tag">Actividad de usuarios</span></h2>
@@ -1309,6 +1437,8 @@
   let auditLog = [];
   let retiros = [];
   let atenciones = [];
+  let cartas = [];
+  let cierresCartas = [];
   let currentUserName = null;
   let letterEdited = false;
   let db = null;
@@ -1404,6 +1534,42 @@
       tx.set(ref, { ultimo: siguiente }, { merge:true });
       return siguiente;
     });
+  }
+
+  // ---------- Cartas de Compromiso y Condicionalidad (Firestore, en tiempo real) ----------
+  function watchCartas(){
+    const q = query(collection(db,'cartas'), orderBy('creadoEn','desc'));
+    onSnapshot(q, snap=>{
+      cartas = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      renderCartaRegistro();
+      renderCierreGrid();
+    }, err=>{
+      console.error(err);
+      showToast('No se pudo conectar con el registro de cartas.');
+    });
+  }
+  function watchCierresCartas(){
+    const q = query(collection(db,'cierresCartas'), orderBy('creadoEn','desc'));
+    onSnapshot(q, snap=>{
+      cierresCartas = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      renderCierreGrid();
+    }, err=>{
+      console.error(err);
+    });
+  }
+
+  // Folio correlativo propio por tipo (CC- compromiso, CD- condicionalidad) y año,
+  // generado de forma atómica para evitar folios duplicados.
+  async function nextFolioCarta(tipo, anio){
+    const prefix = tipo === 'condicionalidad' ? 'CD' : 'CC';
+    const ref = doc(db, 'contadores', `carta_${prefix}_${anio}`);
+    const siguiente = await runTransaction(db, async (tx)=>{
+      const snap = await tx.get(ref);
+      const n = (snap.exists() ? (snap.data().ultimo||0) : 0) + 1;
+      tx.set(ref, { ultimo: n }, { merge:true });
+      return n;
+    });
+    return `${prefix}-${anio}-${String(siguiente).padStart(4,'0')}`;
   }
 
   async function logAudit(accion, rec){
@@ -1522,6 +1688,8 @@
     actualizarHistorialAlumno();
     renderAtencionRegistro();
     renderAtencionInformes();
+    renderCartaRegistro();
+    renderCierreGrid();
   });
   function anioDeRegistro(r){
     // Registros creados antes de tener el campo "anio" no lo tienen guardado;
@@ -1543,6 +1711,15 @@
   }
   function atencionesDelAnio(){
     return atenciones.filter(r=>anioDeAtencion(r)===anioSelect.value);
+  }
+  function anioDeCarta(r){
+    return r.anio || (r.fecha ? r.fecha.slice(0,4) : null);
+  }
+  function cartasDelAnio(){
+    return cartas.filter(r=>anioDeCarta(r)===anioSelect.value);
+  }
+  function isYearClosedCartas(anio){
+    return cierresCartas.some(c=>c.anio===anio);
   }
 
   // ---------- Form submit ----------
@@ -2624,6 +2801,329 @@
     });
   });
 
+  // ---------- Cartas de Compromiso y Condicionalidad: contenido legal ----------
+  const COMPROMISO_ITEMS = [
+    ['Respeto de las normas institucionales.', 'Cumplir el Reglamento Interno de Convivencia Escolar, las instrucciones de los funcionarios y las normas establecidas para el adecuado funcionamiento del establecimiento.'],
+    ['Trato respetuoso hacia todas las personas.', 'Mantener un trato digno y respetuoso con estudiantes, docentes, asistentes de la educación, directivos y demás integrantes de la comunidad educativa.'],
+    ['No molestar, hostigar ni incomodar a compañeras o compañeros.', 'Abstenerse de conductas, comentarios, gestos o mensajes que puedan generar incomodidad, intimidación, hostigamiento o acoso.'],
+    ['No realizar burlas, humillaciones o descalificaciones.', 'Evitar sobrenombres ofensivos, burlas, imitaciones o comentarios que menoscaben la dignidad de otra persona.'],
+    ['No agredir ni confrontar.', 'No participar en agresiones físicas, verbales o psicológicas, amenazas o enfrentamientos. Ante un conflicto, solicitar la intervención de un adulto responsable.'],
+    ['Prevenir y evitar conflictos dentro y fuera del establecimiento.', 'Actuar con autocontrol, evitando promover u organizar conflictos que afecten a la comunidad educativa, incluso fuera del recinto escolar cuando exista relación con la convivencia escolar.'],
+    ['Uso responsable de redes sociales y medios digitales.', 'No utilizar redes sociales ni mensajería para comentar, difundir, injuriar, amenazar o ridiculizar a integrantes de la comunidad educativa.'],
+    ['No difundir capturas de pantalla o contenido con fines de burla o daño.', 'No realizar ni compartir capturas, fotografías, audios o videos con el propósito de burlarse, humillar o generar conflictos.'],
+    ['No vulnerar el clima escolar.', 'Contribuir a un ambiente seguro y respetuoso, evitando conductas que alteren la tranquilidad o bienestar de la comunidad educativa.'],
+    ['Informar y buscar ayuda ante situaciones de conflicto.', 'Comunicar oportunamente a Inspectoría General, Convivencia Escolar o el/la profesor/a jefe cualquier situación que pueda escalar en violencia o conflicto.']
+  ];
+  const RPA_PARRAFOS = [
+    'El/la estudiante y su apoderado/a declaran conocer que, en Chile, la Ley N.º 20.084 establece un sistema de responsabilidad penal adolescente para quienes tienen entre 14 y 17 años al momento de cometer un hecho que la ley califica como delito, lo que significa que ciertas conductas graves pueden tener consecuencias más allá del ámbito escolar y ser conocidas por las autoridades competentes.',
+    'Según la gravedad del hecho y las circunstancias del caso, pueden existir consecuencias judiciales tales como medidas socioeducativas, reparación del daño, servicios en beneficio de la comunidad, libertad asistida o, en los casos que la ley contempla, privación de libertad; su determinación corresponde a las autoridades y tribunales competentes, no al establecimiento.',
+    'Las medidas disciplinarias internas y las eventuales responsabilidades legales son ámbitos distintos: el establecimiento podrá aplicar las medidas de su Reglamento Interno y efectuar las comunicaciones o denuncias que correspondan cuando los hechos pudieran revestir carácter de delito, conforme a la normativa vigente.'
+  ];
+  const DECLARACION_COMPROMISO = 'Declaro haber leído y comprendido los compromisos señalados en este documento, conocer las normas del Reglamento Interno de Convivencia Escolar y asumir la responsabilidad de mantener una conducta respetuosa y adecuada, evitando cualquier acción que genere daño, humillación, violencia o alteración del clima escolar, incluso mediante redes sociales u otros medios digitales. El incumplimiento de estos compromisos podrá dar lugar a la aplicación de las medidas establecidas en el Reglamento Interno, respetando siempre el debido proceso.';
+  const COMPROMISOS_COND_DEFAULT = [
+    'Cumplir íntegramente el Reglamento Interno de Convivencia Escolar (RICE) y las indicaciones de Inspectoría General.',
+    'Mantener una conducta respetuosa con todos los integrantes de la comunidad educativa, sin incurrir en las conductas que originaron esta medida.',
+    'Asistir a las entrevistas y/o instancias de seguimiento a las que sea citado/a junto a su apoderado/a.',
+    'Cumplir con puntualidad y asistencia regular a clases, salvo causas justificadas.'
+  ];
+
+  // ---------- Cartas: helpers de paginación de PDF ----------
+  function pdfCheckBreak(pdf, y, needed){
+    if(y + needed > 270){ pdf.addPage(); return 20; }
+    return y;
+  }
+  function pdfParagraph(pdf, text, x, maxWidth, y){
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(9.5);
+    const lineas = pdf.splitTextToSize(text, maxWidth);
+    y = pdfCheckBreak(pdf, y, lineas.length*4.3+3);
+    pdf.text(lineas, x, y);
+    return y + lineas.length*4.3 + 4;
+  }
+  function pdfHeading3(pdf, text, x, y){
+    y = pdfCheckBreak(pdf, y, 10);
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(11);
+    pdf.setTextColor(14,14,92);
+    pdf.text(text, x, y);
+    pdf.setTextColor(0,0,0);
+    return y + 7;
+  }
+  function pdfNumberedItem(pdf, x, maxWidth, y, num, label, text){
+    y = pdfCheckBreak(pdf, y, 12);
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(9.5);
+    const encabezado = pdf.splitTextToSize(`${num}. ${label}`, maxWidth);
+    pdf.text(encabezado, x, y);
+    y += encabezado.length*4.3 + 1;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(9.5);
+    const lineas = pdf.splitTextToSize(text, maxWidth-4);
+    y = pdfCheckBreak(pdf, y, lineas.length*4.3+5);
+    pdf.text(lineas, x+4, y);
+    return y + lineas.length*4.3 + 5;
+  }
+
+  // ---------- Cartas: PDF del documento ----------
+  function buildCartaPDF(rec){
+    const pdf = new jsPDF({ unit:'mm', format:'letter' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const maxWidth = pageW - 36;
+    const crest = getCrestDataUrl();
+    if(crest){ try{ pdf.addImage(crest, 'PNG', 15, 10, 16, 22); }catch(e){} }
+    const esCond = rec.tipo === 'condicionalidad';
+
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(13);
+    pdf.text('I. Comercial Alberto Valenzuela Llanos', pageW/2, 17, { align:'center' });
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(10);
+    pdf.text('San Fernando', pageW/2, 23, { align:'center' });
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(14);
+    pdf.text(esCond ? 'CARTA DE CONDICIONALIDAD DE MATRÍCULA' : 'CARTA DE COMPROMISO DE BUEN COMPORTAMIENTO', pageW/2, 34, { align:'center' });
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(11);
+    pdf.text(`Folio N° ${rec.folio}`, pageW/2, 41, { align:'center' });
+
+    let y = 54;
+    const filasId = [
+      ['Estudiante', rec.nombre],
+      ['RUT estudiante', rec.rut],
+      ['Curso', rec.curso],
+      ['Apoderado/a', rec.apoNombre],
+      ['RUT apoderado/a', rec.apoRut],
+      ['Fecha de emisión', fmtDate(rec.fecha)]
+    ];
+    pdf.setFontSize(10);
+    filasId.forEach(([label,val])=>{
+      pdf.setFont('helvetica','bold');
+      pdf.text(label+':', 18, y);
+      pdf.setFont('helvetica','normal');
+      pdf.text(String(val||'—'), 70, y);
+      y += 6;
+    });
+    y += 6;
+
+    if(!esCond){
+      y = pdfParagraph(pdf, 'Por medio del presente documento, el/la estudiante y su apoderado/a declaran conocer y comprender las normas de convivencia escolar del Instituto Comercial Alberto Valenzuela Llanos, y manifiestan su compromiso de mantener una conducta respetuosa, responsable y acorde con los principios de buena convivencia, tanto dentro como fuera del establecimiento cuando sus actos se relacionen con la comunidad educativa.', 18, maxWidth, y);
+      y = pdfHeading3(pdf, 'I. Compromisos de conducta y convivencia', 18, y);
+      COMPROMISO_ITEMS.forEach(([label,text],i)=>{
+        y = pdfNumberedItem(pdf, 18, maxWidth, y, i+1, label, text);
+      });
+      y = pdfHeading3(pdf, 'II. Responsabilidad penal adolescente', 18, y);
+      RPA_PARRAFOS.forEach(p=>{ y = pdfParagraph(pdf, p, 18, maxWidth, y); });
+      y = pdfHeading3(pdf, 'III. Declaración de compromiso', 18, y);
+      y = pdfParagraph(pdf, DECLARACION_COMPROMISO, 18, maxWidth, y);
+    } else {
+      y = pdfHeading3(pdf, 'I. Antecedentes', 18, y);
+      const periodo = `${fmtDate(rec.periodoDesde)} al ${fmtDate(rec.periodoHasta)}`;
+      y = pdfParagraph(pdf, `Producto de los hechos que se describen a continuación${rec.articulo?`, y en relación con lo dispuesto en el ${rec.articulo} del Reglamento Interno de Convivencia Escolar (RICE)`:''}, el establecimiento ha resuelto aplicar como medida disciplinaria y formativa la CONDICIONALIDAD DE MATRÍCULA del/la estudiante individualizado/a, por el período comprendido entre el ${periodo}.`, 18, maxWidth, y);
+      y = pdfParagraph(pdf, `Motivo / causal: ${rec.motivo || '[No especificado]'}`, 18, maxWidth, y);
+      y = pdfHeading3(pdf, 'II. Fundamentos de la medida', 18, y);
+      y = pdfParagraph(pdf, 'La condicionalidad de matrícula es una medida disciplinaria de carácter formativo, previa a otras de mayor gravedad, que busca ofrecer al/la estudiante y a su familia la oportunidad de modificar las conductas que la originan mediante compromisos concretos y seguimiento cercano, respetando el debido proceso y el derecho a ser oído/a.', 18, maxWidth, y);
+      y = pdfHeading3(pdf, 'III. Compromisos específicos', 18, y);
+      const listaCompromisos = (rec.compromisos && rec.compromisos.trim())
+        ? rec.compromisos.split('\n').map(l=>l.trim()).filter(Boolean)
+        : COMPROMISOS_COND_DEFAULT;
+      listaCompromisos.forEach(texto=>{
+        pdf.setFont('helvetica','normal'); pdf.setFontSize(9.5);
+        const lineas = pdf.splitTextToSize(`• ${texto}`, maxWidth-4);
+        y = pdfCheckBreak(pdf, y, lineas.length*4.3+2);
+        pdf.text(lineas, 18+4, y);
+        y += lineas.length*4.3 + 2;
+      });
+      y += 3;
+      y = pdfHeading3(pdf, 'IV. Seguimiento', 18, y);
+      y = pdfParagraph(pdf, 'Inspectoría General, el/la Encargado/a de Convivencia Escolar y/o el/la profesor/a jefe realizarán seguimiento periódico del cumplimiento de los compromisos señalados, dejando constancia de las observaciones registradas durante el período de condicionalidad en la hoja de vida del/la estudiante.', 18, maxWidth, y);
+      y = pdfHeading3(pdf, 'V. Consecuencias del incumplimiento', 18, y);
+      y = pdfParagraph(pdf, 'En caso de incumplimiento de los compromisos señalados, o de reincidencia en las conductas que dieron origen a esta medida, el establecimiento podrá evaluar la aplicación de medidas de mayor gravedad, incluyendo la no renovación de matrícula para el período académico siguiente, conforme al debido proceso y al Reglamento Interno de Convivencia Escolar, garantizando el derecho a apelar la medida ante la Dirección dentro de los plazos que ésta determine.', 18, maxWidth, y);
+      if(rec.observaciones && rec.observaciones.trim()){
+        y = pdfHeading3(pdf, 'VI. Observaciones adicionales', 18, y);
+        y = pdfParagraph(pdf, rec.observaciones, 18, maxWidth, y);
+      }
+    }
+
+    y = pdfCheckBreak(pdf, y, 40);
+    y += 6;
+    pdf.line(18, y, 18+78, y);
+    pdf.line(18+90, y, 18+90+78, y);
+    y += 5;
+    pdf.setFontSize(9); pdf.setFont('helvetica','normal');
+    pdf.text('Firma estudiante', 18, y);
+    pdf.text('Firma apoderado/a', 18+90, y);
+    y += 4;
+    pdf.text(rec.nombre||'', 18, y);
+    pdf.text(rec.apoNombre||'', 18+90, y);
+    y += 18;
+    y = pdfCheckBreak(pdf, y, 20);
+    pdf.line(18, y, 18+78, y);
+    pdf.line(18+90, y, 18+90+78, y);
+    y += 5;
+    pdf.text(esCond ? 'Firma Director/a' : 'Firma representante del establecimiento', 18, y);
+    if(esCond) pdf.text('Firma Inspector/a General o Encargado/a de Convivencia', 18+90, y);
+
+    pdf.save(`Carta_${rec.folio}_${(rec.nombre||'estudiante').replace(/\s+/g,'_')}.pdf`);
+  }
+
+  // ---------- Cartas: registro ----------
+  function renderCartaRegistro(){
+    const body = document.getElementById('cartaRegistroBody');
+    const empty = document.getElementById('cartaRegistroEmpty');
+    if(!body) return;
+    const busqueda = (document.getElementById('cartaRegistroBuscar').value||'').trim().toLowerCase();
+    const tipoFiltro = document.getElementById('cartaRegistroTipo').value;
+    const rows = cartasDelAnio()
+      .filter(r=> tipoFiltro==='todos' || r.tipo===tipoFiltro)
+      .filter(r=> !busqueda || [r.nombre,r.rut,r.folio].join(' ').toLowerCase().includes(busqueda))
+      .slice().sort((a,b)=>(b.folio||'').localeCompare(a.folio||''));
+    if(rows.length===0){
+      body.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    body.innerHTML = rows.map(r=>`
+      <tr>
+        <td>${escapeHtml(r.folio||'—')}</td>
+        <td>${r.tipo==='condicionalidad' ? '<span class="badge badge-gravisima">Condicionalidad</span>' : '<span class="badge badge-leve">Compromiso</span>'}</td>
+        <td>${escapeHtml(r.nombre||'—')}</td>
+        <td>${escapeHtml(r.curso||'—')}</td>
+        <td>${fmtDate(r.fecha)}</td>
+        <td>${r.estado==='cerrado' ? '<span class="pill pill-no">Cerrado</span>' : '<span class="pill pill-ok">Vigente</span>'}</td>
+        <td class="no-print"><button type="button" class="icon-btn" title="Descargar PDF" data-carta-pdf="${r.id}">📄</button></td>
+      </tr>
+    `).join('');
+  }
+  document.getElementById('cartaRegistroBuscar').addEventListener('input', renderCartaRegistro);
+  document.getElementById('cartaRegistroTipo').addEventListener('change', renderCartaRegistro);
+  document.getElementById('cartaRegistroBody').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-carta-pdf]');
+    if(!btn) return;
+    const rec = cartas.find(r=>r.id===btn.dataset.cartaPdf);
+    if(rec) buildCartaPDF(rec);
+  });
+
+  // ---------- Cartas: cierres anuales ----------
+  function renderCierreGrid(){
+    const grid = document.getElementById('cierreGrid');
+    if(!grid) return;
+    const anios = new Set(cartas.map(anioDeCarta).filter(Boolean));
+    anios.add(anioSelect.value);
+    const anioLista = Array.from(anios).sort().reverse();
+    if(anioLista.length===0){
+      grid.innerHTML = '<div class="empty-state">No hay años con actividad todavía.</div>';
+      return;
+    }
+    grid.innerHTML = anioLista.map(anio=>{
+      const recs = cartas.filter(r=>anioDeCarta(r)===anio);
+      const totalComp = recs.filter(r=>r.tipo==='compromiso').length;
+      const totalCond = recs.filter(r=>r.tipo==='condicionalidad').length;
+      const cierre = cierresCartas.find(c=>c.anio===anio);
+      return `
+        <div class="stat-card" style="text-align:left;">
+          <div class="stat-label" style="font-size:22px;font-family:var(--font-display);color:var(--navy-deep);margin-bottom:8px;">${anio}</div>
+          <div style="display:flex;gap:14px;margin-bottom:10px;">
+            <div><b style="display:block;font-size:17px;color:var(--navy);">${totalComp}</b><span style="font-size:10.5px;color:var(--ink-soft);">Compromiso</span></div>
+            <div><b style="display:block;font-size:17px;color:var(--navy);">${totalCond}</b><span style="font-size:10.5px;color:var(--ink-soft);">Condicionalidad</span></div>
+            <div><b style="display:block;font-size:17px;color:var(--navy);">${totalComp+totalCond}</b><span style="font-size:10.5px;color:var(--ink-soft);">Total</span></div>
+          </div>
+          ${cierre
+            ? `<span class="pill pill-no">Cerrado</span> <span class="stat-note">el ${fmtDate(cierre.fechaCierre)}</span>`
+            : `<button type="button" class="btn btn-ghost" style="color:var(--danger);border:1.4px solid var(--danger);" data-cerrar-anio="${anio}">Cerrar año ${anio}</button>`
+          }
+        </div>`;
+    }).join('');
+    grid.querySelectorAll('[data-cerrar-anio]').forEach(btn=>{
+      btn.addEventListener('click', ()=>cerrarAnioCartas(btn.dataset.cerrarAnio));
+    });
+  }
+
+  async function cerrarAnioCartas(anio){
+    if(!confirm(`¿Confirmas el cierre del año ${anio}? Las cartas de ese año quedarán marcadas como "Cerrado" y no se podrán registrar nuevas cartas mientras ese año esté seleccionado.`)) return;
+    const recs = cartas.filter(r=>anioDeCarta(r)===anio);
+    try{
+      for(const r of recs){
+        if(r.estado !== 'cerrado'){
+          await updateDoc(doc(db,'cartas', r.id), { estado:'cerrado' });
+        }
+      }
+      await addDoc(collection(db,'cierresCartas'), {
+        anio,
+        fechaCierre: new Date().toISOString().slice(0,10),
+        totalCompromiso: recs.filter(r=>r.tipo==='compromiso').length,
+        totalCondicionalidad: recs.filter(r=>r.tipo==='condicionalidad').length,
+        total: recs.length,
+        cerradoPor: currentUserName,
+        creadoEn: serverTimestamp()
+      });
+      showToast('✓ Año '+anio+' cerrado correctamente.');
+    }catch(err){
+      console.error(err);
+      showToast('No se pudo cerrar el año. Intente nuevamente.');
+    }
+  }
+
+  // ---------- Cartas: formulario y sub-pestañas ----------
+  document.getElementById('carta-fecha').valueAsDate = new Date();
+  document.getElementById('carta-tipo').addEventListener('change', ()=>{
+    const esCond = document.getElementById('carta-tipo').value === 'condicionalidad';
+    document.getElementById('cartaCondicionalidadFields').style.display = esCond ? '' : 'none';
+  });
+
+  document.getElementById('cartaForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const anio = anioSelect.value;
+    if(isYearClosedCartas(anio)){
+      showToast('El año '+anio+' ya fue cerrado. Seleccione otro año para registrar nuevas cartas.');
+      return;
+    }
+    const tipo = document.getElementById('carta-tipo').value;
+    const rec = {
+      tipo,
+      nombre: document.getElementById('carta-nombre').value.trim(),
+      rut: document.getElementById('carta-rut').value.trim(),
+      curso: document.getElementById('carta-curso').value.trim(),
+      apoNombre: document.getElementById('carta-apo-nombre').value.trim(),
+      apoRut: document.getElementById('carta-apo-rut').value.trim(),
+      fecha: document.getElementById('carta-fecha').value,
+      motivo: document.getElementById('carta-motivo').value.trim(),
+      articulo: document.getElementById('carta-articulo').value.trim(),
+      periodoDesde: document.getElementById('carta-periodo-desde').value,
+      periodoHasta: document.getElementById('carta-periodo-hasta').value,
+      compromisos: document.getElementById('carta-compromisos').value.trim(),
+      observaciones: document.getElementById('carta-observaciones').value.trim(),
+      anio,
+      estado: 'vigente',
+      creadoPor: currentUserName,
+      creadoEn: serverTimestamp()
+    };
+    try{
+      const folio = await nextFolioCarta(tipo, anio);
+      rec.folio = folio;
+      await addDoc(collection(db,'cartas'), rec);
+      await logAudit('Registró carta de '+(tipo==='condicionalidad'?'condicionalidad':'compromiso'), { nombre: rec.nombre, curso: rec.curso, anio });
+      buildCartaPDF(rec);
+      document.getElementById('cartaForm').reset();
+      document.getElementById('carta-fecha').valueAsDate = new Date();
+      document.getElementById('cartaCondicionalidadFields').style.display = 'none';
+      showToast('✓ Carta registrada. Folio '+folio);
+    }catch(err){
+      console.error(err);
+      showToast('No se pudo registrar la carta. Intente nuevamente.');
+    }
+  });
+
+  document.getElementById('cartaResetBtn').addEventListener('click', ()=>{
+    document.getElementById('cartaForm').reset();
+    document.getElementById('carta-fecha').valueAsDate = new Date();
+    document.getElementById('cartaCondicionalidadFields').style.display = 'none';
+  });
+
+  document.querySelectorAll('#panel-cartas .subtab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#panel-cartas .subtab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      ['cartas-nueva','cartas-registro','cartas-cierres'].forEach(key=>{
+        document.getElementById('sub-'+key).style.display = (key===btn.dataset.subtab) ? '' : 'none';
+      });
+      if(btn.dataset.subtab==='cartas-registro') renderCartaRegistro();
+      if(btn.dataset.subtab==='cartas-cierres') renderCierreGrid();
+    });
+  });
+
   // ---------- Render all ----------
   function renderAll(){
     populateFilterSelects();
@@ -2737,6 +3237,8 @@
     watchAuditLog();
     watchRetiros();
     watchAtenciones();
+    watchCartas();
+    watchCierresCartas();
     onAuthStateChanged(auth, user=>{
       if(user){ unlockApp(nameForEmail(user.email)); }
       else{ lockApp(); }
