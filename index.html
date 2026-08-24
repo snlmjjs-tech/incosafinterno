@@ -668,6 +668,17 @@
   }
   .pill-ok{background:var(--ok-bg);color:var(--ok);}
   .pill-no{background:var(--danger-bg);color:var(--danger);}
+  .insp-details{
+    margin-top:16px;
+    border-top:1px solid var(--line);
+    padding-top:14px;
+  }
+  .insp-details summary{
+    cursor:pointer;
+    font-weight:700;
+    color:var(--navy);
+    font-size:13px;
+  }
   .stat-canvas{
     width:100%;
     max-height:240px;
@@ -1001,6 +1012,14 @@
           <span class="alumno-hist-total" id="retiroAlumnoTotal">0 retiros</span>
         </div>
         <div class="month-grid" id="retiroAlumnoMeses"></div>
+        <div class="field" style="margin-top:14px;max-width:280px;">
+          <label for="retiroAsistenciaInput">% de asistencia actual</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="number" id="retiroAsistenciaInput" min="0" max="100" step="0.1" style="max-width:100px;">
+            <button type="button" class="btn btn-ghost btn-sm" id="retiroAsistenciaGuardarBtn">Guardar</button>
+            <span class="pill" id="retiroAsistenciaBadge" style="display:none;"></span>
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -1025,6 +1044,60 @@
         <div class="empty-state" id="retiroHistEmpty" style="display:none;">
           <span class="glyph">🚪</span>
           Aún no hay retiros registrados en este año.
+        </div>
+      </div>
+
+      <div class="card" id="retiroInspCard">
+        <h2 class="section-title" style="font-size:15px;">Panel de Inspectoría General</h2>
+        <div class="note">Este panel permite corregir el estado "Justificado" de un retiro ya registrado. Requiere la clave de acceso de Inspectoría General.</div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="inspFolio">Retiro a modificar</label>
+            <select id="inspFolio"></select>
+          </div>
+          <div class="field">
+            <label for="inspNuevoEstado">Nuevo estado</label>
+            <select id="inspNuevoEstado">
+              <option value="Sí">Justificado</option>
+              <option value="No">No justificado</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="inspClave">Clave de acceso</label>
+            <input type="password" id="inspClave" placeholder="Clave de Inspectoría General" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-primary" id="inspActualizarBtn">Actualizar estado</button>
+        </div>
+
+        <details class="insp-details">
+          <summary>Cambiar clave de acceso</summary>
+          <div class="grid-2" style="margin-top:12px;">
+            <div class="field">
+              <label for="inspClaveActual">Clave actual</label>
+              <input type="password" id="inspClaveActual" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="inspClaveNueva">Nueva clave (mínimo 4 caracteres)</label>
+              <input type="password" id="inspClaveNueva" autocomplete="off">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost btn-sm" id="inspCambiarClaveBtn">Cambiar clave</button>
+          </div>
+        </details>
+
+        <div class="table-scroll" style="margin-top:14px;">
+          <table>
+            <thead>
+              <tr><th>Fecha</th><th>Usuario</th><th>Folio</th><th>Alumno</th><th>Cambio</th></tr>
+            </thead>
+            <tbody id="inspLogBody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="inspLogEmpty" style="display:none;padding:14px 0 4px;">
+          Aún no hay cambios registrados en este panel.
         </div>
       </div>
     </div>
@@ -1398,7 +1471,7 @@
     getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
-    getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, deleteField,
+    getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, deleteField, setDoc,
     onSnapshot, query, orderBy, serverTimestamp, runTransaction
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm";
@@ -1436,6 +1509,9 @@
   let records = [];
   let auditLog = [];
   let retiros = [];
+  let retiroAsistencias = [];
+  let retiroInspLog = [];
+  let retiroAccessKey = 'INCOSAF';
   let atenciones = [];
   let cartas = [];
   let cierresCartas = [];
@@ -1509,6 +1585,43 @@
       tx.set(ref, { ultimo: siguiente }, { merge:true });
       return siguiente;
     });
+  }
+
+  // ---------- Retiro de estudiantes: % de asistencia por alumno/año ----------
+  const ATTENDANCE_MIN = 85; // mínimo legal de asistencia en Chile
+
+  function slugAlumno(nombre){
+    return (nombre||'').trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+  }
+  function asistenciaId(nombre, anio){
+    return anio+'_'+slugAlumno(nombre);
+  }
+  function getAsistencia(nombre, anio){
+    const rec = retiroAsistencias.find(a=>a.id===asistenciaId(nombre, anio));
+    return rec && typeof rec.valor === 'number' ? rec.valor : null;
+  }
+  function watchRetiroAsistencias(){
+    onSnapshot(query(collection(db,'retiroAsistencia')), snap=>{
+      retiroAsistencias = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      actualizarHistorialAlumno();
+    }, err=>console.error(err));
+  }
+
+  // ---------- Retiro de estudiantes: Panel de Inspectoría General ----------
+  function watchRetiroConfig(){
+    onSnapshot(query(collection(db,'retiroConfig')), snap=>{
+      const cfg = snap.docs.find(d=>d.id==='inspectoria');
+      retiroAccessKey = (cfg && cfg.data().accessKey) ? cfg.data().accessKey : 'INCOSAF';
+    }, err=>console.error(err));
+  }
+  function watchRetiroInspLog(){
+    const q = query(collection(db,'retiroInspLog'), orderBy('creadoEn','desc'));
+    onSnapshot(q, snap=>{
+      retiroInspLog = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      renderInspLog();
+    }, err=>console.error(err));
   }
 
   // ---------- Atención a la comunidad (Firestore, en tiempo real) ----------
@@ -1686,6 +1799,7 @@
     renderRetiroHistorial();
     renderRetiroStats();
     actualizarHistorialAlumno();
+    renderInspLog();
     renderAtencionRegistro();
     renderAtencionInformes();
     renderCartaRegistro();
@@ -2154,11 +2268,56 @@
       y += 7 * lineas.length;
     });
 
-    y += 6;
+    // Historial mensual de retiros del alumno en el año, mismo cálculo que
+    // el widget en pantalla (retiroAlumnoMeses), para que quede constancia
+    // en el comprobante impreso.
+    const mesesRec = new Array(12).fill(0);
+    retirosDelAnio().filter(r=>(r.alumno||'').trim().toLowerCase() === (rec.alumno||'').trim().toLowerCase())
+      .forEach(r=>{
+        if(r.fecha){
+          const m = parseInt(r.fecha.slice(5,7),10) - 1;
+          if(m>=0 && m<12) mesesRec[m]++;
+        }
+      });
+    const totalMeses = mesesRec.reduce((a,b)=>a+b,0);
+
+    y += 3;
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(10.5);
+    pdf.text('Historial de retiros del alumno(a) en el año '+rec.anio, 18, y); y += 6;
+    const cellW = (pageW-36)/12, cellH = 12;
+    NOMBRES_MES_CORTO.forEach((mes,i)=>{
+      const x = 18 + i*cellW;
+      pdf.setFillColor(14,14,92);
+      pdf.rect(x, y, cellW, cellH/2, 'F');
+      pdf.setTextColor(255,255,255);
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(7.5);
+      pdf.text(mes, x+cellW/2, y+cellH/4+1.5, { align:'center' });
+      if(mesesRec[i]>0) pdf.setFillColor(242,193,24); else pdf.setFillColor(251,250,244);
+      pdf.rect(x, y+cellH/2, cellW, cellH/2, 'F');
+      pdf.setTextColor(28,28,46);
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(9);
+      pdf.text(String(mesesRec[i]), x+cellW/2, y+cellH*0.85, { align:'center' });
+    });
+    y += cellH + 6;
+    pdf.setTextColor(0,0,0);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(9.5);
+    pdf.text(`Total: ${totalMeses} retiro${totalMeses===1?'':'s'} en el año`, 18, y);
+    y += 8;
+
+    const asistenciaVal = getAsistencia(rec.alumno, rec.anio);
+    if(asistenciaVal !== null){
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(10.5);
+      const bajoMinimo = asistenciaVal < ATTENDANCE_MIN;
+      if(bajoMinimo) pdf.setTextColor(184,50,47);
+      pdf.text(`% de asistencia actual: ${asistenciaVal}%${bajoMinimo ? ' (bajo el mínimo legal de '+ATTENDANCE_MIN+'%)' : ''}`, 18, y);
+      pdf.setTextColor(0,0,0);
+      y += 10;
+    }
+
     pdf.setFont('helvetica','bold'); pdf.setFontSize(10.5);
     pdf.text('Declaración de responsabilidad', 18, y); y += 6;
     pdf.setFont('helvetica','normal'); pdf.setFontSize(9.5);
-    const declaracion = 'Quien firma este documento declara ser la persona autorizada para retirar al alumno(a) individualizado(a) durante la jornada escolar, y asume la responsabilidad por su cuidado desde el momento del retiro.';
+    const declaracion = 'Quien firma este documento declara ser la persona autorizada para retirar al alumno(a) individualizado(a) durante la jornada escolar, y asume la responsabilidad por su cuidado y por las consecuencias que dicho retiro pueda tener en su rendimiento académico desde el momento del retiro.';
     pdf.text(pdf.splitTextToSize(declaracion, pageW-36), 18, y);
     y += 16;
 
@@ -2207,6 +2366,18 @@
         <span class="month-count">${n}</span>
       </div>
     `).join('');
+
+    const asistenciaInput = document.getElementById('retiroAsistenciaInput');
+    const asistenciaBadge = document.getElementById('retiroAsistenciaBadge');
+    const valor = getAsistencia(nombre, anioSelect.value);
+    asistenciaInput.value = valor===null ? '' : valor;
+    if(valor===null){
+      asistenciaBadge.style.display = 'none';
+    }else{
+      asistenciaBadge.style.display = '';
+      asistenciaBadge.className = 'pill ' + (valor>=ATTENDANCE_MIN ? 'pill-ok' : 'pill-no');
+      asistenciaBadge.textContent = valor + '%' + (valor<ATTENDANCE_MIN ? ' — bajo el mínimo legal' : '');
+    }
   }
 
   // ---------- Retiro de estudiantes: historial general ----------
@@ -2218,22 +2389,23 @@
     if(rows.length===0){
       body.innerHTML = '';
       empty.style.display = 'block';
-      return;
+    }else{
+      empty.style.display = 'none';
+      body.innerHTML = rows.map(r=>`
+        <tr>
+          <td>${String(r.folio||0).padStart(5,'0')}</td>
+          <td>${fmtDate(r.fecha)}</td>
+          <td>${escapeHtml(r.hora||'—')}</td>
+          <td>${escapeHtml(r.curso||'—')}</td>
+          <td>${escapeHtml(r.alumno||'—')}</td>
+          <td>${escapeHtml(r.retira||'—')}</td>
+          <td>${escapeHtml(r.motivo||'—')}</td>
+          <td><span class="pill ${r.justificado==='Sí'?'pill-ok':'pill-no'}">${escapeHtml(r.justificado||'—')}</span></td>
+          <td class="no-print"><button type="button" class="icon-btn" title="Descargar PDF" data-retiro-pdf="${r.id}">📄</button></td>
+        </tr>
+      `).join('');
     }
-    empty.style.display = 'none';
-    body.innerHTML = rows.map(r=>`
-      <tr>
-        <td>${String(r.folio||0).padStart(5,'0')}</td>
-        <td>${fmtDate(r.fecha)}</td>
-        <td>${escapeHtml(r.hora||'—')}</td>
-        <td>${escapeHtml(r.curso||'—')}</td>
-        <td>${escapeHtml(r.alumno||'—')}</td>
-        <td>${escapeHtml(r.retira||'—')}</td>
-        <td>${escapeHtml(r.motivo||'—')}</td>
-        <td><span class="pill ${r.justificado==='Sí'?'pill-ok':'pill-no'}">${escapeHtml(r.justificado||'—')}</span></td>
-        <td class="no-print"><button type="button" class="icon-btn" title="Descargar PDF" data-retiro-pdf="${r.id}">📄</button></td>
-      </tr>
-    `).join('');
+    populateInspFolioSelect(rows);
   }
 
   document.getElementById('retiroHistBody').addEventListener('click', (e)=>{
@@ -2241,6 +2413,117 @@
     if(!btn) return;
     const rec = retiros.find(r=>r.id===btn.dataset.retiroPdf);
     if(rec) buildRetiroPDF(rec);
+  });
+
+  // ---------- Retiro de estudiantes: % de asistencia (guardar) ----------
+  document.getElementById('retiroAsistenciaGuardarBtn').addEventListener('click', async ()=>{
+    const nombre = document.getElementById('ret-alumno').value.trim();
+    if(!nombre){ showToast('Ingrese el nombre del alumno primero.'); return; }
+    const input = document.getElementById('retiroAsistenciaInput');
+    let valor = parseFloat(input.value);
+    if(isNaN(valor) || valor<0 || valor>100){
+      showToast('Ingrese un porcentaje de asistencia válido (0 a 100).');
+      return;
+    }
+    valor = Math.round(valor*10)/10;
+    const anio = anioSelect.value;
+    try{
+      await setDoc(doc(db,'retiroAsistencia', asistenciaId(nombre, anio)), {
+        nombre, anio, valor,
+        actualizadoPor: currentUserName || '—',
+        actualizadoEn: serverTimestamp()
+      });
+      showToast('✓ Asistencia guardada.');
+    }catch(err){
+      console.error(err);
+      showToast('No se pudo guardar la asistencia.');
+    }
+  });
+
+  // ---------- Retiro de estudiantes: Panel de Inspectoría General ----------
+  function populateInspFolioSelect(rows){
+    const sel = document.getElementById('inspFolio');
+    if(!sel) return;
+    const prevValue = sel.value;
+    sel.innerHTML = rows.map(r=>`<option value="${r.id}">#${String(r.folio||0).padStart(5,'0')} — ${escapeHtml(r.alumno||'—')} (${fmtDate(r.fecha)}, ${escapeHtml(r.justificado||'—')})</option>`).join('');
+    if(rows.some(r=>r.id===prevValue)) sel.value = prevValue;
+  }
+
+  function renderInspLog(){
+    const body = document.getElementById('inspLogBody');
+    const empty = document.getElementById('inspLogEmpty');
+    if(!body) return;
+    const rows = retiroInspLog.filter(l=>(l.anio||null)===anioSelect.value);
+    if(rows.length===0){
+      body.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    body.innerHTML = rows.slice(0,20).map(l=>`
+      <tr>
+        <td>${l.creadoEn && l.creadoEn.toDate ? l.creadoEn.toDate().toLocaleString('es-CL') : '—'}</td>
+        <td>${escapeHtml(l.usuario||'—')}</td>
+        <td>${String(l.folio||0).padStart(5,'0')}</td>
+        <td>${escapeHtml(l.alumno||'—')}</td>
+        <td>${escapeHtml(l.anterior||'—')} → ${escapeHtml(l.nuevo||'—')}</td>
+      </tr>
+    `).join('');
+  }
+
+  document.getElementById('inspActualizarBtn').addEventListener('click', async ()=>{
+    const folioSel = document.getElementById('inspFolio');
+    const claveInput = document.getElementById('inspClave');
+    const nuevoEstado = document.getElementById('inspNuevoEstado').value;
+    if(!folioSel.value){ showToast('Seleccione un retiro para modificar.'); return; }
+    if(claveInput.value !== retiroAccessKey){
+      showToast('Clave de acceso incorrecta.');
+      claveInput.value = '';
+      return;
+    }
+    const rec = retiros.find(r=>r.id===folioSel.value);
+    if(!rec){ showToast('No se encontró el retiro seleccionado.'); return; }
+    if(rec.justificado === nuevoEstado){ showToast('El retiro ya tiene ese estado.'); return; }
+    try{
+      await updateDoc(doc(db,'retiros', rec.id), { justificado: nuevoEstado });
+      await addDoc(collection(db,'retiroInspLog'), {
+        folio: rec.folio,
+        alumno: rec.alumno,
+        anio: rec.anio || anioSelect.value,
+        usuario: currentUserName || '—',
+        anterior: rec.justificado || '—',
+        nuevo: nuevoEstado,
+        creadoEn: serverTimestamp()
+      });
+      await logAudit('Actualizó estado de retiro (Inspectoría General)', { nombre: rec.alumno, curso: rec.curso, anio: rec.anio });
+      claveInput.value = '';
+      showToast('✓ Estado del retiro actualizado.');
+    }catch(err){
+      console.error(err);
+      showToast('No se pudo actualizar el estado del retiro.');
+    }
+  });
+
+  document.getElementById('inspCambiarClaveBtn').addEventListener('click', async ()=>{
+    const actualInput = document.getElementById('inspClaveActual');
+    const nuevaInput = document.getElementById('inspClaveNueva');
+    if(actualInput.value !== retiroAccessKey){
+      showToast('La clave actual no es correcta.');
+      return;
+    }
+    if(nuevaInput.value.trim().length < 4){
+      showToast('La nueva clave debe tener al menos 4 caracteres.');
+      return;
+    }
+    try{
+      await setDoc(doc(db,'retiroConfig','inspectoria'), { accessKey: nuevaInput.value.trim() }, { merge:true });
+      actualInput.value = '';
+      nuevaInput.value = '';
+      showToast('✓ Clave de acceso actualizada.');
+    }catch(err){
+      console.error(err);
+      showToast('No se pudo actualizar la clave.');
+    }
   });
 
   // ---------- Retiro de estudiantes: estadísticas y gráficos ----------
@@ -3236,6 +3519,9 @@
     watchRecords();
     watchAuditLog();
     watchRetiros();
+    watchRetiroAsistencias();
+    watchRetiroConfig();
+    watchRetiroInspLog();
     watchAtenciones();
     watchCartas();
     watchCierresCartas();
