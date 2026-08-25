@@ -1049,31 +1049,93 @@
 
       <div class="card" id="retiroInspCard">
         <h2 class="section-title" style="font-size:15px;">Panel de Inspectoría General</h2>
-        <div class="note">Este panel permite corregir el estado "Justificado" de un retiro ya registrado. Requiere la clave de acceso de Inspectoría General.</div>
+        <div class="note">Permite corregir cualquier dato de un retiro ya registrado, o eliminarlo. Solo Claudio Valenzuela o Luis Cádiz Fuenzalida, con su clave personal, pueden usar este panel.</div>
         <div class="grid-2">
           <div class="field">
-            <label for="inspFolio">Retiro a modificar</label>
-            <select id="inspFolio"></select>
-          </div>
-          <div class="field">
-            <label for="inspNuevoEstado">Nuevo estado</label>
-            <select id="inspNuevoEstado">
-              <option value="Sí">Justificado</option>
-              <option value="No">No justificado</option>
+            <label for="inspInspector">Inspector</label>
+            <select id="inspInspector">
+              <option value="Claudio Valenzuela">Claudio Valenzuela</option>
+              <option value="Luis Cádiz Fuenzalida">Luis Cádiz Fuenzalida</option>
             </select>
           </div>
           <div class="field">
-            <label for="inspClave">Clave de acceso</label>
-            <input type="password" id="inspClave" placeholder="Clave de Inspectoría General" autocomplete="off">
+            <label for="inspClave">Clave personal</label>
+            <input type="password" id="inspClave" placeholder="Clave personal del inspector" autocomplete="off">
+          </div>
+          <div class="field full">
+            <label for="inspFolio">Retiro a editar o eliminar</label>
+            <select id="inspFolio"><option value="">Seleccione un retiro…</option></select>
           </div>
         </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-primary" id="inspActualizarBtn">Actualizar estado</button>
+
+        <div id="inspEditFields" style="display:none;">
+          <div class="grid-2" style="margin-top:6px;">
+            <div class="field">
+              <label for="inspEdFecha">Fecha</label>
+              <input type="date" id="inspEdFecha">
+            </div>
+            <div class="field">
+              <label for="inspEdHora">Hora de retiro</label>
+              <input type="time" id="inspEdHora">
+            </div>
+            <div class="field">
+              <label for="inspEdAlumno">Nombre del alumno</label>
+              <input type="text" id="inspEdAlumno">
+            </div>
+            <div class="field">
+              <label for="inspEdCurso">Curso</label>
+              <input type="text" id="inspEdCurso">
+            </div>
+            <div class="field">
+              <label for="inspEdRetira">Nombre de quien retira</label>
+              <input type="text" id="inspEdRetira">
+            </div>
+            <div class="field">
+              <label for="inspEdRelacion">Relación con el alumno</label>
+              <select id="inspEdRelacion">
+                <option value="Padre">Padre</option>
+                <option value="Madre">Madre</option>
+                <option value="Apoderado">Apoderado</option>
+                <option value="Otro autorizado">Otro autorizado</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="inspEdMotivo">Motivo del retiro</label>
+              <select id="inspEdMotivo">
+                <option value="Enfermedad">Enfermedad</option>
+                <option value="Hora médica">Hora médica</option>
+                <option value="Trámites administrativos">Trámites administrativos</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="inspEdJustificado">¿Retiro justificado?</label>
+              <select id="inspEdJustificado">
+                <option value="Sí">Sí</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+            <div class="field full">
+              <label for="inspEdObs">Observaciones</label>
+              <textarea id="inspEdObs"></textarea>
+            </div>
+          </div>
+          <div class="form-actions" style="justify-content:space-between;">
+            <button type="button" class="btn btn-ghost" id="inspEliminarBtn" style="color:var(--danger);border-color:var(--danger);">Eliminar registro</button>
+            <button type="button" class="btn btn-primary" id="inspGuardarBtn">Guardar cambios</button>
+          </div>
         </div>
 
         <details class="insp-details">
-          <summary>Cambiar clave de acceso</summary>
+          <summary>Cambiar mi clave personal</summary>
           <div class="grid-2" style="margin-top:12px;">
+            <div class="field">
+              <label for="inspClaveInspector">Inspector</label>
+              <select id="inspClaveInspector">
+                <option value="Claudio Valenzuela">Claudio Valenzuela</option>
+                <option value="Luis Cádiz Fuenzalida">Luis Cádiz Fuenzalida</option>
+              </select>
+            </div>
             <div class="field">
               <label for="inspClaveActual">Clave actual</label>
               <input type="password" id="inspClaveActual" autocomplete="off">
@@ -1091,7 +1153,7 @@
         <div class="table-scroll" style="margin-top:14px;">
           <table>
             <thead>
-              <tr><th>Fecha</th><th>Usuario</th><th>Folio</th><th>Alumno</th><th>Cambio</th></tr>
+              <tr><th>Fecha</th><th>Inspector</th><th>Folio</th><th>Alumno</th><th>Cambio</th></tr>
             </thead>
             <tbody id="inspLogBody"></tbody>
           </table>
@@ -1546,6 +1608,7 @@
   let retiroAsistencias = [];
   let retiroInspLog = [];
   let retiroAccessKey = 'INCOSAF';
+  let retiroInspAccessKeys = { 'Claudio Valenzuela': 'INCOSAF', 'Luis Cádiz Fuenzalida': 'INCOSAF' };
   let atenciones = [];
   let atencionAccessKey = 'INCOSAF2026';
   let atencionEditUnlocked = false;
@@ -1646,10 +1709,17 @@
   }
 
   // ---------- Retiro de estudiantes: Panel de Inspectoría General ----------
+  function slugInspector(nombre){
+    return slugAlumno(nombre).replace(/_+/g,'-');
+  }
   function watchRetiroConfig(){
     onSnapshot(query(collection(db,'retiroConfig')), snap=>{
       const cfg = snap.docs.find(d=>d.id==='inspectoria');
       retiroAccessKey = (cfg && cfg.data().accessKey) ? cfg.data().accessKey : 'INCOSAF';
+      ['Claudio Valenzuela','Luis Cádiz Fuenzalida'].forEach(inspector=>{
+        const cfgDoc = snap.docs.find(d=>d.id===slugInspector(inspector));
+        retiroInspAccessKeys[inspector] = (cfgDoc && cfgDoc.data().accessKey) ? cfgDoc.data().accessKey : 'INCOSAF';
+      });
     }, err=>console.error(err));
   }
   function watchRetiroInspLog(){
@@ -2489,9 +2559,40 @@
     const sel = document.getElementById('inspFolio');
     if(!sel) return;
     const prevValue = sel.value;
-    sel.innerHTML = rows.map(r=>`<option value="${r.id}">#${String(r.folio||0).padStart(5,'0')} — ${escapeHtml(r.alumno||'—')} (${fmtDate(r.fecha)}, ${escapeHtml(r.justificado||'—')})</option>`).join('');
-    if(rows.some(r=>r.id===prevValue)) sel.value = prevValue;
+    sel.innerHTML = '<option value="">Seleccione un retiro…</option>' +
+      rows.map(r=>`<option value="${r.id}">#${String(r.folio||0).padStart(5,'0')} — ${escapeHtml(r.alumno||'—')} (${fmtDate(r.fecha)}, ${escapeHtml(r.justificado||'—')})</option>`).join('');
+    if(prevValue && rows.some(r=>r.id===prevValue)){
+      sel.value = prevValue;
+      cargarInspEditFields(rows.find(r=>r.id===prevValue));
+    }else{
+      sel.value = '';
+      cargarInspEditFields(null);
+    }
   }
+
+  function cargarInspEditFields(rec){
+    const wrap = document.getElementById('inspEditFields');
+    if(!wrap) return;
+    if(!rec){
+      wrap.style.display = 'none';
+      return;
+    }
+    wrap.style.display = '';
+    document.getElementById('inspEdFecha').value = rec.fecha || '';
+    document.getElementById('inspEdHora').value = rec.hora || '';
+    document.getElementById('inspEdAlumno').value = rec.alumno || '';
+    document.getElementById('inspEdCurso').value = rec.curso || '';
+    document.getElementById('inspEdRetira').value = rec.retira || '';
+    document.getElementById('inspEdRelacion').value = rec.relacion || 'Padre';
+    document.getElementById('inspEdMotivo').value = rec.motivo || 'Enfermedad';
+    document.getElementById('inspEdJustificado').value = rec.justificado || 'Sí';
+    document.getElementById('inspEdObs').value = rec.observaciones || '';
+  }
+
+  document.getElementById('inspFolio').addEventListener('change', ()=>{
+    const sel = document.getElementById('inspFolio');
+    cargarInspEditFields(retiros.find(r=>r.id===sel.value) || null);
+  });
 
   function renderInspLog(){
     const body = document.getElementById('inspLogBody');
@@ -2504,54 +2605,122 @@
       return;
     }
     empty.style.display = 'none';
-    body.innerHTML = rows.slice(0,20).map(l=>`
-      <tr>
-        <td>${l.creadoEn && l.creadoEn.toDate ? l.creadoEn.toDate().toLocaleString('es-CL') : '—'}</td>
-        <td>${escapeHtml(l.usuario||'—')}</td>
-        <td>${String(l.folio||0).padStart(5,'0')}</td>
-        <td>${escapeHtml(l.alumno||'—')}</td>
-        <td>${escapeHtml(l.anterior||'—')} → ${escapeHtml(l.nuevo||'—')}</td>
-      </tr>
-    `).join('');
+    body.innerHTML = rows.slice(0,20).map(l=>{
+      const inspector = l.inspector || l.usuario || '—';
+      let cambio;
+      if(l.tipo === 'eliminacion'){
+        cambio = 'Eliminó el registro';
+      }else if(l.tipo === 'edicion'){
+        cambio = escapeHtml(l.detalle || 'Editó el registro');
+      }else{
+        cambio = `${escapeHtml(l.anterior||'—')} → ${escapeHtml(l.nuevo||'—')}`;
+      }
+      return `
+        <tr>
+          <td>${l.creadoEn && l.creadoEn.toDate ? l.creadoEn.toDate().toLocaleString('es-CL') : '—'}</td>
+          <td>${escapeHtml(inspector)}</td>
+          <td>${String(l.folio||0).padStart(5,'0')}</td>
+          <td>${escapeHtml(l.alumno||'—')}</td>
+          <td>${cambio}</td>
+        </tr>
+      `;
+    }).join('');
   }
 
-  document.getElementById('inspActualizarBtn').addEventListener('click', async ()=>{
+  const INSP_CAMPO_LABEL = {
+    fecha:'Fecha', hora:'Hora de retiro', alumno:'Nombre del alumno', curso:'Curso',
+    retira:'Quien retira', relacion:'Relación', motivo:'Motivo', justificado:'Justificado',
+    observaciones:'Observaciones'
+  };
+
+  document.getElementById('inspGuardarBtn').addEventListener('click', async ()=>{
     const folioSel = document.getElementById('inspFolio');
+    const inspector = document.getElementById('inspInspector').value;
     const claveInput = document.getElementById('inspClave');
-    const nuevoEstado = document.getElementById('inspNuevoEstado').value;
     if(!folioSel.value){ showToast('Seleccione un retiro para modificar.'); return; }
-    if(claveInput.value !== retiroAccessKey){
+    if(claveInput.value !== retiroInspAccessKeys[inspector]){
       showToast('Clave de acceso incorrecta.');
       claveInput.value = '';
       return;
     }
     const rec = retiros.find(r=>r.id===folioSel.value);
     if(!rec){ showToast('No se encontró el retiro seleccionado.'); return; }
-    if(rec.justificado === nuevoEstado){ showToast('El retiro ya tiene ese estado.'); return; }
+
+    const cambios = {
+      fecha: document.getElementById('inspEdFecha').value,
+      hora: document.getElementById('inspEdHora').value,
+      alumno: document.getElementById('inspEdAlumno').value.trim(),
+      curso: document.getElementById('inspEdCurso').value.trim(),
+      retira: document.getElementById('inspEdRetira').value.trim(),
+      relacion: document.getElementById('inspEdRelacion').value,
+      motivo: document.getElementById('inspEdMotivo').value,
+      justificado: document.getElementById('inspEdJustificado').value,
+      observaciones: document.getElementById('inspEdObs').value.trim()
+    };
+    const cambiosTexto = Object.keys(cambios)
+      .filter(k=>(cambios[k]||'') !== (rec[k]||''))
+      .map(k=>`${INSP_CAMPO_LABEL[k]}: "${rec[k]||'—'}" → "${cambios[k]||'—'}"`);
+    if(cambiosTexto.length===0){ showToast('No hay cambios para guardar.'); return; }
+
     try{
-      await updateDoc(doc(db,'retiros', rec.id), { justificado: nuevoEstado });
+      await updateDoc(doc(db,'retiros', rec.id), cambios);
+      await addDoc(collection(db,'retiroInspLog'), {
+        folio: rec.folio,
+        alumno: cambios.alumno,
+        anio: rec.anio || anioSelect.value,
+        inspector,
+        tipo: 'edicion',
+        detalle: cambiosTexto.join(' · '),
+        creadoEn: serverTimestamp()
+      });
+      await logAudit('Editó retiro de estudiante (Inspectoría General)', { nombre: cambios.alumno, curso: cambios.curso, anio: rec.anio });
+      claveInput.value = '';
+      showToast('✓ Retiro actualizado.');
+    }catch(err){
+      console.error(err);
+      showToast('No se pudo guardar el cambio.');
+    }
+  });
+
+  document.getElementById('inspEliminarBtn').addEventListener('click', async ()=>{
+    const folioSel = document.getElementById('inspFolio');
+    const inspector = document.getElementById('inspInspector').value;
+    const claveInput = document.getElementById('inspClave');
+    if(!folioSel.value){ showToast('Seleccione un retiro para eliminar.'); return; }
+    if(claveInput.value !== retiroInspAccessKeys[inspector]){
+      showToast('Clave de acceso incorrecta.');
+      claveInput.value = '';
+      return;
+    }
+    const rec = retiros.find(r=>r.id===folioSel.value);
+    if(!rec){ showToast('No se encontró el retiro seleccionado.'); return; }
+    if(!window.confirm(`¿Eliminar definitivamente el retiro #${String(rec.folio||0).padStart(5,'0')} de ${rec.alumno||'—'}? Esta acción no se puede deshacer.`)) return;
+
+    try{
+      await deleteDoc(doc(db,'retiros', rec.id));
       await addDoc(collection(db,'retiroInspLog'), {
         folio: rec.folio,
         alumno: rec.alumno,
         anio: rec.anio || anioSelect.value,
-        usuario: currentUserName || '—',
-        anterior: rec.justificado || '—',
-        nuevo: nuevoEstado,
+        inspector,
+        tipo: 'eliminacion',
+        detalle: 'Eliminó el registro',
         creadoEn: serverTimestamp()
       });
-      await logAudit('Actualizó estado de retiro (Inspectoría General)', { nombre: rec.alumno, curso: rec.curso, anio: rec.anio });
+      await logAudit('Eliminó retiro de estudiante (Inspectoría General)', { nombre: rec.alumno, curso: rec.curso, anio: rec.anio });
       claveInput.value = '';
-      showToast('✓ Estado del retiro actualizado.');
+      showToast('✓ Retiro eliminado.');
     }catch(err){
       console.error(err);
-      showToast('No se pudo actualizar el estado del retiro.');
+      showToast('No se pudo eliminar el retiro.');
     }
   });
 
   document.getElementById('inspCambiarClaveBtn').addEventListener('click', async ()=>{
+    const inspector = document.getElementById('inspClaveInspector').value;
     const actualInput = document.getElementById('inspClaveActual');
     const nuevaInput = document.getElementById('inspClaveNueva');
-    if(actualInput.value !== retiroAccessKey){
+    if(actualInput.value !== retiroInspAccessKeys[inspector]){
       showToast('La clave actual no es correcta.');
       return;
     }
@@ -2560,7 +2729,7 @@
       return;
     }
     try{
-      await setDoc(doc(db,'retiroConfig','inspectoria'), { accessKey: nuevaInput.value.trim() }, { merge:true });
+      await setDoc(doc(db,'retiroConfig', slugInspector(inspector)), { accessKey: nuevaInput.value.trim() }, { merge:true });
       actualInput.value = '';
       nuevaInput.value = '';
       showToast('✓ Clave de acceso actualizada.');
