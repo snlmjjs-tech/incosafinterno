@@ -122,6 +122,12 @@
     text-align:center;
     box-shadow:0 20px 60px rgba(0,0,0,.4);
   }
+  .lock-crest{
+    width:84px;
+    height:auto;
+    margin:0 auto 16px;
+    display:block;
+  }
   .lock-title{
     font-family:var(--font-display);
     color:var(--navy-deep);
@@ -690,7 +696,8 @@
 
 <div class="lock-screen" id="lockScreen">
   <div class="lock-card">
-    <h1 class="lock-title">Sistema de Suspensiones</h1>
+    <img id="lockCrestImg" class="lock-crest" src="" alt="Escudo I. Comercial Alberto Valenzuela Llanos">
+    <h1 class="lock-title">Intranet Inspectoría General</h1>
     <p class="lock-sub">I. Comercial Alberto Valenzuela Llanos — San Fernando</p>
     <button class="btn btn-gold" id="intranetBtn" type="button">🔒 Intranet</button>
     <form id="pinForm" class="pin-form" style="display:none;">
@@ -1584,6 +1591,14 @@
     appId: "1:466123047655:web:510e737d3cb0eabcf61842"
   };
   const FIREBASE_CONFIGURED = !firebaseConfig.apiKey.startsWith('PEGA_AQUI');
+
+  // El escudo institucional ya está incrustado en el encabezado (.crest img);
+  // se reutiliza aquí para no duplicar la imagen en el HTML.
+  (function syncLockScreenCrest(){
+    const lockCrestImg = document.getElementById('lockCrestImg');
+    const headerCrestImg = document.querySelector('#appContent .crest img');
+    if(lockCrestImg && headerCrestImg) lockCrestImg.src = headerCrestImg.src;
+  })();
 
   // ---------- Directorio de usuarios ----------
   // Cada persona debe existir como usuario real en Firebase Authentication
