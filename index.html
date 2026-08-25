@@ -1244,6 +1244,39 @@
 
     <!-- Registro de folios -->
     <div id="sub-atencion-registro" style="display:none;">
+      <div class="card no-print" id="atencionAuthCard">
+        <h2 class="section-title" style="font-size:15px;">Edición de atenciones registradas</h2>
+        <div class="note">Permite corregir los datos de una atención ya registrada. Requiere la clave de acceso de Inspectoría General.</div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="atEdicionClave">Clave de acceso</label>
+            <input type="password" id="atEdicionClave" placeholder="Clave de Inspectoría General" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-actions" style="justify-content:flex-start;gap:10px;">
+          <button type="button" class="btn btn-primary btn-sm" id="atEdicionDesbloquearBtn">Desbloquear edición</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="atEdicionBloquearBtn" style="display:none;">Bloquear edición</button>
+          <span class="pill pill-ok" id="atEdicionEstado" style="display:none;">Edición habilitada para esta sesión</span>
+        </div>
+
+        <details class="insp-details">
+          <summary>Cambiar clave de acceso</summary>
+          <div class="grid-2" style="margin-top:12px;">
+            <div class="field">
+              <label for="atClaveActual">Clave actual</label>
+              <input type="password" id="atClaveActual" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="atClaveNueva">Nueva clave (mínimo 4 caracteres)</label>
+              <input type="password" id="atClaveNueva" autocomplete="off">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost btn-sm" id="atCambiarClaveBtn">Cambiar clave</button>
+          </div>
+        </details>
+      </div>
+
       <div class="toolbar no-print">
         <div class="field grow">
           <label>Buscar por nombre, folio, curso o alumno</label>
@@ -1256,7 +1289,7 @@
             <thead>
               <tr>
                 <th>Folio</th><th>Fecha</th><th>Tipo</th><th>Asistente</th>
-                <th>Curso / Estamento</th><th>Atendido por</th><th class="no-print">PDF</th>
+                <th>Curso / Estamento</th><th>Atendido por</th><th class="no-print">PDF</th><th class="no-print">Editar</th>
               </tr>
             </thead>
             <tbody id="atencionRegistroBody"></tbody>
@@ -1267,6 +1300,7 @@
           Aún no hay atenciones registradas en este año.
         </div>
       </div>
+      <div id="atencionEditZone"></div>
     </div>
 
     <!-- Informes -->
@@ -1513,6 +1547,8 @@
   let retiroInspLog = [];
   let retiroAccessKey = 'INCOSAF';
   let atenciones = [];
+  let atencionAccessKey = 'INCOSAF2026';
+  let atencionEditUnlocked = false;
   let cartas = [];
   let cierresCartas = [];
   let currentUserName = null;
@@ -1635,6 +1671,14 @@
       console.error(err);
       showToast('No se pudo conectar con los registros de atención.');
     });
+  }
+
+  // ---------- Atención a la comunidad: clave de edición de registros ----------
+  function watchAtencionConfig(){
+    onSnapshot(query(collection(db,'atencionConfig')), snap=>{
+      const cfg = snap.docs.find(d=>d.id==='edicion');
+      atencionAccessKey = (cfg && cfg.data().accessKey) ? cfg.data().accessKey : 'INCOSAF2026';
+    }, err=>console.error(err));
   }
 
   // Folio correlativo por año escolar, propio de esta sección (independiente
@@ -2914,16 +2958,168 @@
         <td>${escapeHtml(r.curso||'—')}</td>
         <td>${escapeHtml(r.funcionario||'—')}</td>
         <td class="no-print"><button type="button" class="icon-btn" title="Descargar PDF" data-atencion-pdf="${r.id}">📄</button></td>
+        <td class="no-print">${atencionEditUnlocked ? `<button type="button" class="icon-btn" title="Editar atención" data-atencion-editar="${r.id}">✏️</button>` : '—'}</td>
       </tr>
     `).join('');
   }
   document.getElementById('atRegistroBuscar').addEventListener('input', renderAtencionRegistro);
   document.getElementById('atencionRegistroBody').addEventListener('click', (e)=>{
-    const btn = e.target.closest('[data-atencion-pdf]');
-    if(!btn) return;
-    const rec = atenciones.find(r=>r.id===btn.dataset.atencionPdf);
-    if(rec) buildAtencionPDF(rec);
+    const pdfBtn = e.target.closest('[data-atencion-pdf]');
+    if(pdfBtn){
+      const rec = atenciones.find(r=>r.id===pdfBtn.dataset.atencionPdf);
+      if(rec) buildAtencionPDF(rec);
+      return;
+    }
+    const editBtn = e.target.closest('[data-atencion-editar]');
+    if(editBtn){
+      const rec = atenciones.find(r=>r.id===editBtn.dataset.atencionEditar);
+      if(rec) abrirEdicionAtencion(rec);
+    }
   });
+
+  // ---------- Atención a la comunidad: edición de registros (protegida por clave) ----------
+  function actualizarAtencionAuthUI(){
+    document.getElementById('atEdicionDesbloquearBtn').style.display = atencionEditUnlocked ? 'none' : '';
+    document.getElementById('atEdicionBloquearBtn').style.display = atencionEditUnlocked ? '' : 'none';
+    document.getElementById('atEdicionEstado').style.display = atencionEditUnlocked ? '' : 'none';
+  }
+
+  document.getElementById('atEdicionDesbloquearBtn').addEventListener('click', ()=>{
+    const claveInput = document.getElementById('atEdicionClave');
+    if(claveInput.value !== atencionAccessKey){
+      showToast('Clave de acceso incorrecta.');
+      claveInput.value = '';
+      return;
+    }
+    atencionEditUnlocked = true;
+    claveInput.value = '';
+    actualizarAtencionAuthUI();
+    renderAtencionRegistro();
+  });
+
+  document.getElementById('atEdicionBloquearBtn').addEventListener('click', ()=>{
+    atencionEditUnlocked = false;
+    document.getElementById('atencionEditZone').innerHTML = '';
+    actualizarAtencionAuthUI();
+    renderAtencionRegistro();
+  });
+
+  document.getElementById('atCambiarClaveBtn').addEventListener('click', async ()=>{
+    const actualInput = document.getElementById('atClaveActual');
+    const nuevaInput = document.getElementById('atClaveNueva');
+    if(actualInput.value !== atencionAccessKey){
+      showToast('La clave actual no es correcta.');
+      return;
+    }
+    if(nuevaInput.value.trim().length < 4){
+      showToast('La nueva clave debe tener al menos 4 caracteres.');
+      return;
+    }
+    try{
+      await setDoc(doc(db,'atencionConfig','edicion'), { accessKey: nuevaInput.value.trim() }, { merge:true });
+      actualInput.value = '';
+      nuevaInput.value = '';
+      showToast('✓ Clave de acceso actualizada.');
+    }catch(err){
+      console.error(err);
+      showToast('No se pudo actualizar la clave.');
+    }
+  });
+
+  const AT_TIPO_OPCIONES = ['Justificación de inasistencia','Justificación de atraso','Situación disciplinaria','Trámite administrativo','Orientación / consulta general'];
+  const AT_CALIDAD_OPCIONES = ['Alumno(a)','Apoderado(a)','Apoderado(a) y alumno(a)','Docente','Asistente de la educación','Funcionario(a) administrativo','Otro'];
+
+  function abrirEdicionAtencion(r){
+    if(!atencionEditUnlocked) return;
+    const zone = document.getElementById('atencionEditZone');
+    zone.innerHTML = `
+      <div class="card" id="atencionEditCard">
+        <h2 class="section-title" style="font-size:15px;">Editar atención — Folio ${String(r.folio||0).padStart(6,'0')}</h2>
+        <div class="grid">
+          <div class="field full">
+            <label for="atEdit-tipo">Tipo de atención</label>
+            <select id="atEdit-tipo">
+              ${AT_TIPO_OPCIONES.map(t=>`<option value="${t}" ${t===r.tipo?'selected':''}>${t}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label for="atEdit-fecha">Fecha</label>
+            <input type="date" id="atEdit-fecha" value="${r.fecha||''}">
+          </div>
+          <div class="field">
+            <label for="atEdit-hora">Hora</label>
+            <input type="time" id="atEdit-hora" value="${r.hora||''}">
+          </div>
+          <div class="field">
+            <label for="atEdit-funcionario">Atendido por (funcionario)</label>
+            <input type="text" id="atEdit-funcionario" value="${escapeHtml(r.funcionario||'')}">
+          </div>
+          <div class="field">
+            <label for="atEdit-calidad">Calidad del asistente</label>
+            <select id="atEdit-calidad">
+              ${AT_CALIDAD_OPCIONES.map(c=>`<option value="${c}" ${c===r.calidad?'selected':''}>${c}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label for="atEdit-nombre">Nombre completo</label>
+            <input type="text" id="atEdit-nombre" value="${escapeHtml(r.nombre||'')}">
+          </div>
+          <div class="field">
+            <label for="atEdit-rut">RUT (opcional)</label>
+            <input type="text" id="atEdit-rut" value="${escapeHtml(r.rut||'')}">
+          </div>
+          <div class="field">
+            <label for="atEdit-alumno">Alumno(a) relacionado (si aplica)</label>
+            <input type="text" id="atEdit-alumno" value="${escapeHtml(r.alumno||'')}">
+          </div>
+          <div class="field">
+            <label for="atEdit-curso">Curso / Estamento</label>
+            <input type="text" id="atEdit-curso" value="${escapeHtml(r.curso||'')}">
+          </div>
+          <div class="field full">
+            <label for="atEdit-motivo">Motivo / descripción de la atención</label>
+            <textarea id="atEdit-motivo" maxlength="500">${escapeHtml(r.motivo||'')}</textarea>
+          </div>
+          <div class="field full">
+            <label for="atEdit-acuerdos">Acuerdos / compromisos (opcional)</label>
+            <textarea id="atEdit-acuerdos" maxlength="300">${escapeHtml(r.acuerdos||'')}</textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost" id="atEditCancelBtn">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="atEditGuardarBtn">Guardar cambios</button>
+        </div>
+      </div>
+    `;
+    zone.scrollIntoView({ behavior:'smooth', block:'center' });
+
+    document.getElementById('atEditCancelBtn').addEventListener('click', ()=>{ zone.innerHTML = ''; });
+
+    document.getElementById('atEditGuardarBtn').addEventListener('click', async ()=>{
+      const cambios = {
+        tipo: document.getElementById('atEdit-tipo').value,
+        fecha: document.getElementById('atEdit-fecha').value,
+        hora: document.getElementById('atEdit-hora').value,
+        funcionario: document.getElementById('atEdit-funcionario').value.trim(),
+        calidad: document.getElementById('atEdit-calidad').value,
+        nombre: document.getElementById('atEdit-nombre').value.trim(),
+        rut: document.getElementById('atEdit-rut').value.trim(),
+        alumno: document.getElementById('atEdit-alumno').value.trim(),
+        curso: document.getElementById('atEdit-curso').value.trim(),
+        motivo: document.getElementById('atEdit-motivo').value.trim(),
+        acuerdos: document.getElementById('atEdit-acuerdos').value.trim()
+      };
+      try{
+        await updateDoc(doc(db,'atenciones', r.id), cambios);
+        await logAudit('Editó atención a la comunidad (registro protegido)', { nombre: cambios.nombre, curso: cambios.curso, anio: r.anio });
+        zone.innerHTML = '';
+        showToast('✓ Atención actualizada.');
+      }catch(err){
+        console.error(err);
+        showToast('No se pudo guardar el cambio. Intente nuevamente.');
+      }
+    });
+  }
 
   // ---------- Atención a la comunidad: informes ----------
   function atencionesEnRango(){
@@ -3523,6 +3719,7 @@
     watchRetiroConfig();
     watchRetiroInspLog();
     watchAtenciones();
+    watchAtencionConfig();
     watchCartas();
     watchCierresCartas();
     onAuthStateChanged(auth, user=>{
