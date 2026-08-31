@@ -2114,6 +2114,18 @@
     { email: 'raul.lopez@incosafintranet.cl',         nombre: 'Raúl López Ortega' }
   ];
 
+  // Paradocentes: acceso restringido — al iniciar sesión con estas cuentas
+  // solo ven la pestaña Asistencia y únicamente para registrar asistencia
+  // en sus propios cursos (ver activarModoParadocente más abajo).
+  const PARADOCENTE_DIRECTORY = [
+    { email: 'nery.marin@incosafintranet.cl',      nombre: 'Nery Marín' },
+    { email: 'maria.quiroz@incosafintranet.cl',    nombre: 'María Quiroz' },
+    { email: 'silvia.faundez@incosafintranet.cl',  nombre: 'Silvia Faúndez' },
+    { email: 'jaqueline.poblete@incosafintranet.cl', nombre: 'Jaqueline Poblete' },
+    { email: 'maritza.toledo@incosafintranet.cl',  nombre: 'Maritza Toledo' },
+    { email: 'edison.valenzuela@incosafintranet.cl', nombre: 'Edison Valenzuela' }
+  ];
+
   let records = [];
   let auditLog = [];
   let retiros = [];
@@ -5582,10 +5594,70 @@
         return; // onAuthStateChanged desbloquea la app al confirmar la sesión.
       }catch(err){ /* prueba con la siguiente cuenta */ }
     }
+    for(const usuario of PARADOCENTE_DIRECTORY){
+      try{
+        await signInWithEmailAndPassword(auth, usuario.email, pin);
+        return;
+      }catch(err){ /* prueba con la siguiente cuenta */ }
+    }
     pinError.style.display = 'block';
     pinInput.value = '';
     pinInput.focus();
   });
+
+  // ---------- Modo paradocente: solo Registrar asistencia, solo sus cursos ----------
+  let modoParadocenteActivo = false;
+
+  function activarModoParadocente(nombre){
+    modoParadocenteActivo = true;
+    document.querySelectorAll('nav.tabs button').forEach(b=>{
+      b.style.display = (b.dataset.tab === 'asistencia') ? '' : 'none';
+    });
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('panel-asistencia').classList.add('active');
+
+    const subtabs = document.querySelector('#panel-asistencia .subtabs');
+    if(subtabs) subtabs.style.display = 'none';
+    ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento'].forEach(key=>{
+      const el = document.getElementById('sub-'+key);
+      if(el) el.style.display = (key==='asis-registrar') ? '' : 'none';
+    });
+
+    const sel = document.getElementById('asis-registro-usuario');
+    if(sel){
+      sel.innerHTML = `<option value="${nombre}">${nombre}</option>`;
+      sel.value = nombre;
+      sel.disabled = true;
+    }
+    asisCurrentRegistroUser = nombre;
+    asisActualizarCursosDisponibles();
+  }
+
+  function desactivarModoParadocente(){
+    if(!modoParadocenteActivo) return;
+    modoParadocenteActivo = false;
+    document.querySelectorAll('nav.tabs button').forEach(b=>{ b.style.display = ''; });
+    const subtabs = document.querySelector('#panel-asistencia .subtabs');
+    if(subtabs) subtabs.style.display = '';
+
+    const sel = document.getElementById('asis-registro-usuario');
+    if(sel){
+      sel.disabled = false;
+      sel.innerHTML = '<option value="">Selecciona tu usuario</option>';
+      ASIS_ALL_REGISTRO_USERS.forEach(u=>{
+        const o = document.createElement('option'); o.value = u; o.textContent = u;
+        sel.appendChild(o);
+      });
+      sel.value = '';
+    }
+    asisCurrentRegistroUser = '';
+    asisActualizarCursosDisponibles();
+
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('panel-registro').classList.add('active');
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelector('nav.tabs button[data-tab="registro"]').classList.add('active');
+  }
 
   logoutBtn.addEventListener('click', ()=>{ signOut(auth); });
 
@@ -5609,7 +5681,16 @@
     watchAsisAniosCerrados();
     watchAsisRevisados();
     onAuthStateChanged(auth, user=>{
-      if(user){ unlockApp(nameForEmail(user.email)); }
+      if(user){
+        const paradocente = PARADOCENTE_DIRECTORY.find(u=>u.email===user.email);
+        if(paradocente){
+          unlockApp(paradocente.nombre);
+          activarModoParadocente(paradocente.nombre);
+        }else{
+          unlockApp(nameForEmail(user.email));
+          desactivarModoParadocente();
+        }
+      }
       else{ lockApp(); }
     });
   });
