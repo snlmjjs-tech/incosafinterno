@@ -2837,6 +2837,67 @@
     }
   }
 
+  // Gráfico de barras horizontales apiladas (atraso=dorado, inasistencia=rojo)
+  // por alumno, con el nombre y el curso a la izquierda. El alto crece según
+  // la cantidad de alumnos a mostrar, a diferencia de drawBarChart (altura fija).
+  function asisDrawRankingChart(canvas, entries){
+    const rowH = 28;
+    const padTop = 8, padBottom = 26;
+    const labelW = 300, padRight = 46;
+    const wCss = canvas.parentElement.clientWidth || 600;
+    const h = entries.length>0 ? entries.length*rowH + padTop + padBottom : 120;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = wCss*dpr;
+    canvas.height = h*dpr;
+    canvas.style.width = wCss+'px';
+    canvas.style.height = h+'px';
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,wCss,h);
+    if(!entries.length){ drawSinDatos(ctx,wCss,h); return; }
+
+    const max = Math.max(...entries.map(e=>e.atraso+e.inasistencia), 1);
+    const barAreaX = labelW;
+    const barAreaW = Math.max(40, wCss - labelW - padRight);
+
+    entries.forEach((e,i)=>{
+      const y = padTop + i*rowH;
+      const barH = rowH - 8;
+      ctx.fillStyle = '#1c1c2e';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const label = e.name.length>40 ? e.name.slice(0,37)+'…' : e.name;
+      ctx.fillText(label, 4, y+barH/2);
+
+      let x = barAreaX;
+      if(e.atraso>0){
+        const segW = (e.atraso/max)*barAreaW;
+        ctx.fillStyle = '#f2c118';
+        ctx.fillRect(x, y, segW, barH);
+        x += segW;
+      }
+      if(e.inasistencia>0){
+        const segW = (e.inasistencia/max)*barAreaW;
+        ctx.fillStyle = '#b8322f';
+        ctx.fillRect(x, y, segW, barH);
+        x += segW;
+      }
+    });
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = '10px sans-serif';
+    ctx.fillStyle = '#f2c118';
+    ctx.fillRect(labelW, h - 16, 9, 9);
+    ctx.fillStyle = '#1c1c2e';
+    ctx.fillText('Atraso', labelW + 13, h - 8);
+    ctx.fillStyle = '#b8322f';
+    ctx.fillRect(labelW + 70, h - 16, 9, 9);
+    ctx.fillStyle = '#1c1c2e';
+    ctx.fillText('Inasistencia', labelW + 83, h - 8);
+  }
+
   function asisRenderPanel(){
     const cursoFiltro = document.getElementById('asis-panel-curso').value;
     const desde = document.getElementById('asis-panel-desde').value;
@@ -2886,7 +2947,7 @@
         '</li>';
       }).join('') + '</ul>';
     }
-    drawBarChart(document.getElementById('asis-chart-top'), ranked.map(r=>[r.name, r.total]));
+    asisDrawRankingChart(document.getElementById('asis-chart-top'), ranked);
   }
 
   function asisDateStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
