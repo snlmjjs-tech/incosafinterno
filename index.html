@@ -403,6 +403,9 @@
   .badge-leve{background:#fff3cd;color:#8a6d00;}
   .badge-grave{background:#ffe1c9;color:#a6480a;}
   .badge-gravisima{background:var(--danger-bg);color:var(--danger);}
+  .badge-atraso{background:var(--gold-pale);color:var(--gold-deep);}
+  .badge-inasistencia{background:var(--danger-bg);color:var(--danger);}
+  .badge-post810{background:var(--navy-deep);color:var(--gold);}
   .row-actions{display:flex;gap:6px;}
   .icon-btn{
     border:none;background:transparent;cursor:pointer;
@@ -674,6 +677,26 @@
   }
   .pill-ok{background:var(--ok-bg);color:var(--ok);}
   .pill-no{background:var(--danger-bg);color:var(--danger);}
+
+  /* ===== Asistencia (atrasos e inasistencias) ===== */
+  .asis-status-group{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+  .asis-status-btn{
+    font-size:11px;padding:5px 9px;border-radius:6px;border:1px solid var(--line);
+    background:#fff;cursor:pointer;color:var(--ink-soft);font-weight:700;white-space:nowrap;
+  }
+  .asis-status-btn.on-presente{background:var(--ok-bg);border-color:var(--ok);color:var(--ok);}
+  .asis-status-btn.on-atraso{background:var(--gold-pale);border-color:var(--gold-deep);color:var(--gold-deep);}
+  .asis-status-btn.on-inasistencia{background:var(--danger-bg);border-color:var(--danger);color:var(--danger);}
+  .asis-status-btn.on-sinestado{background:var(--paper);border-color:var(--line);color:var(--ink-soft);}
+  .asis-hora-input{display:none;width:80px;font-size:12px;padding:4px 6px;}
+  .asis-hora-input.show{display:inline-block;}
+  .asis-marcado-info{font-size:11px;color:var(--ink-soft);white-space:nowrap;}
+  .asis-total-row td{font-weight:700;border-top:2px solid var(--gold);}
+  .asis-revisado-row td{opacity:.5;}
+  @media print{
+    #panel-asistencia .no-print{display:none !important;}
+  }
+
   .insp-details{
     margin-top:16px;
     border-top:1px solid var(--line);
@@ -743,6 +766,7 @@
     <button data-tab="atencion">Atención a la comunidad</button>
     <button data-tab="cartas">Compromiso y Condicionalidad</button>
     <button data-tab="auditoria">Auditoría</button>
+    <button data-tab="asistencia">Asistencia</button>
   </nav>
 </div>
 
@@ -1562,12 +1586,485 @@
     </div>
   </section>
 
+  <!-- ===================== ASISTENCIA (ATRASOS E INASISTENCIAS) ===================== -->
+  <section class="panel" id="panel-asistencia">
+    <h2 class="section-title">Asistencia <span class="tag">Control de atrasos e inasistencias</span></h2>
+    <p class="section-desc">Registro diario de atrasos e inasistencias por curso, con panel de control, informes, administración de matrícula y seguimiento de casos.</p>
+
+    <div class="subtabs no-print">
+      <button class="subtab-btn active" data-subtab="asis-registrar">Registrar asistencia</button>
+      <button class="subtab-btn" data-subtab="asis-panel">Panel de control</button>
+      <button class="subtab-btn" data-subtab="asis-informe">Informe diario</button>
+      <button class="subtab-btn" data-subtab="asis-general">Informe general</button>
+      <button class="subtab-btn" data-subtab="asis-admin">Administración</button>
+      <button class="subtab-btn" data-subtab="asis-seguimiento">Seguimiento</button>
+    </div>
+
+    <!-- Registrar asistencia -->
+    <div id="sub-asis-registrar">
+      <div class="grid-2">
+        <div class="field">
+          <label for="asis-registro-usuario">Usuario</label>
+          <select id="asis-registro-usuario"><option value="">Selecciona tu usuario</option></select>
+        </div>
+        <div class="field">
+          <label for="asis-curso-select">Curso</label>
+          <select id="asis-curso-select"></select>
+        </div>
+        <div class="field">
+          <label for="asis-fecha-input">Fecha</label>
+          <input type="date" id="asis-fecha-input">
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <span id="asis-save-msg" style="font-size:13px;font-weight:700;color:var(--ok);"></span>
+        </div>
+      </div>
+
+      <p id="asis-registro-bloqueados-info" style="display:none;font-size:13px;color:var(--ink-soft);margin:-6px 0 12px;"></p>
+
+      <div class="card" id="asis-registro-desbloquear-box" style="display:none;">
+        <h2 class="section-title" style="font-size:14px;">Desbloquear un curso (solo Inspectoría General)</h2>
+        <div class="grid-2">
+          <div class="field">
+            <label for="asis-desbloquear-curso">Curso a desbloquear</label>
+            <select id="asis-desbloquear-curso"></select>
+          </div>
+          <div class="field">
+            <label for="asis-desbloquear-inspector">Inspector General</label>
+            <select id="asis-desbloquear-inspector">
+              <option value="Claudio Valenzuela Fuentes">Claudio Valenzuela Fuentes</option>
+              <option value="Luis Cádiz Fuenzalida">Luis Cádiz Fuenzalida</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="asis-desbloquear-clave">Clave</label>
+            <input type="password" id="asis-desbloquear-clave" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="asis-desbloquear-btn">Desbloquear</button>
+        </div>
+        <p id="asis-desbloquear-msg" style="font-size:13px;font-weight:700;"></p>
+
+        <div id="asis-registro-bloquear-de-nuevo" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);">
+          <h2 class="section-title" style="font-size:14px;">Volver a bloquear un curso desbloqueado</h2>
+          <div class="grid-2">
+            <div class="field">
+              <label for="asis-bloquear-curso">Curso a bloquear</label>
+              <select id="asis-bloquear-curso"></select>
+            </div>
+            <div class="field">
+              <label for="asis-bloquear-inspector">Inspector General</label>
+              <select id="asis-bloquear-inspector">
+                <option value="Claudio Valenzuela Fuentes">Claudio Valenzuela Fuentes</option>
+                <option value="Luis Cádiz Fuenzalida">Luis Cádiz Fuenzalida</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="asis-bloquear-clave">Clave</label>
+              <input type="password" id="asis-bloquear-clave" autocomplete="off">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost btn-sm" id="asis-bloquear-btn" style="color:var(--danger);border-color:var(--danger);">Bloquear</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="note" id="asis-cierre-anio-banner" style="display:none;background:var(--danger-bg);color:var(--danger);">Año escolar cerrado — este registro es de solo lectura.</div>
+
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th style="width:34px;">N°</th><th>Alumno</th><th>Estado</th></tr></thead>
+            <tbody id="asis-registro-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-primary" id="asis-btn-guardar-registro">Guardar registro</button>
+      </div>
+    </div>
+
+    <!-- Panel de control -->
+    <div id="sub-asis-panel" style="display:none;">
+      <div class="grid-2">
+        <div class="field">
+          <label for="asis-panel-curso">Curso</label>
+          <select id="asis-panel-curso"><option value="todos">Todos los cursos</option></select>
+        </div>
+        <div class="field">
+          <label for="asis-panel-desde">Desde</label>
+          <input type="date" id="asis-panel-desde">
+        </div>
+        <div class="field">
+          <label for="asis-panel-hasta">Hasta</label>
+          <input type="date" id="asis-panel-hasta">
+        </div>
+      </div>
+      <div class="report-grid">
+        <div class="stat-card"><div class="stat-label">Total atrasos</div><div class="stat-value" id="asis-m-atrasos">0</div></div>
+        <div class="stat-card"><div class="stat-label">Total inasistencias</div><div class="stat-value" id="asis-m-inasistencias">0</div></div>
+        <div class="stat-card"><div class="stat-label">Alumnos con registros</div><div class="stat-value" id="asis-m-alumnos">0</div></div>
+        <div class="stat-card"><div class="stat-label">Días registrados</div><div class="stat-value" id="asis-m-dias">0</div></div>
+      </div>
+      <div class="card">
+        <h2 class="section-title" style="font-size:15px;">Alumnos con más atrasos e inasistencias</h2>
+        <canvas id="asis-chart-top"></canvas>
+      </div>
+      <div class="card" id="asis-ranking-list"></div>
+    </div>
+
+    <!-- Informe diario -->
+    <div id="sub-asis-informe" style="display:none;">
+      <div class="grid-2">
+        <div class="field">
+          <label for="asis-informe-fecha">Fecha del informe</label>
+          <input type="date" id="asis-informe-fecha">
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <span id="asis-informe-status" style="font-size:13px;color:var(--ink-soft);"></span>
+        </div>
+      </div>
+      <div class="report-grid">
+        <div class="stat-card"><div class="stat-label">Matrícula general</div><div class="stat-value" id="asis-i-matricula">0</div></div>
+        <div class="stat-card"><div class="stat-label">Presentes</div><div class="stat-value" id="asis-i-asistencia">0</div></div>
+        <div class="stat-card"><div class="stat-label">Inasistencias</div><div class="stat-value" id="asis-i-inasistencias">0</div></div>
+        <div class="stat-card"><div class="stat-label">Atrasos totales</div><div class="stat-value" id="asis-i-atrasos">0</div></div>
+        <div class="stat-card"><div class="stat-label">Atrasos después 8:10</div><div class="stat-value" id="asis-i-atrasos810">0</div></div>
+        <div class="stat-card"><div class="stat-label">% asistencia</div><div class="stat-value" id="asis-i-pct">0%</div></div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Curso</th><th>Matrícula</th><th>Presentes</th><th>Atrasos</th><th>Post 8:10</th><th>Ausentes</th><th>% Asist.</th></tr></thead>
+            <tbody id="asis-informe-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Informe general -->
+    <div id="sub-asis-general" style="display:none;">
+      <div class="grid-2">
+        <div class="field">
+          <label>Periodo rápido</label>
+          <div class="form-actions" style="justify-content:flex-start;margin-top:0;">
+            <button type="button" class="btn btn-ghost btn-sm" id="asis-btn-semana">Esta semana</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="asis-btn-mes">Este mes</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="asis-btn-anio">Este año</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="asis-general-desde">Desde</label>
+          <input type="date" id="asis-general-desde">
+        </div>
+        <div class="field">
+          <label for="asis-general-hasta">Hasta</label>
+          <input type="date" id="asis-general-hasta">
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button type="button" class="btn btn-ghost btn-sm" id="asis-exportar-csv">Exportar CSV</button>
+        </div>
+      </div>
+      <div class="report-grid">
+        <div class="stat-card"><div class="stat-label">Matrícula general</div><div class="stat-value" id="asis-g-matricula">0</div></div>
+        <div class="stat-card"><div class="stat-label">Días con registros</div><div class="stat-value" id="asis-g-dias">0</div></div>
+        <div class="stat-card"><div class="stat-label">% asistencia promedio</div><div class="stat-value" id="asis-g-pct">0%</div></div>
+        <div class="stat-card"><div class="stat-label">Total atrasos</div><div class="stat-value" id="asis-g-atrasos">0</div></div>
+        <div class="stat-card"><div class="stat-label">Atrasos después 8:10</div><div class="stat-value" id="asis-g-atrasos810">0</div></div>
+        <div class="stat-card"><div class="stat-label">Total inasistencias</div><div class="stat-value" id="asis-g-inasistencias">0</div></div>
+      </div>
+      <div class="card">
+        <h2 class="section-title" style="font-size:15px;">% de asistencia diaria en el periodo</h2>
+        <canvas id="asis-chart-trend"></canvas>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <h2 class="section-title" style="font-size:15px;padding:16px 18px 0;">Detalle por curso en el periodo</h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Curso</th><th>Matrícula</th><th>Días</th><th>Presentes</th><th>Atrasos</th><th>Post 8:10</th><th>Ausentes</th><th>% Asist.</th></tr></thead>
+            <tbody id="asis-general-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2 class="section-title" style="font-size:15px;">Ranking de asistencia por curso (de mejor a peor)</h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th style="width:36px;">#</th><th>Curso</th><th>% Asistencia</th><th>Matrícula</th><th class="no-print"></th></tr></thead>
+            <tbody id="asis-ranking-asistencia-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2 class="section-title" style="font-size:15px;">Ranking de atrasos por curso (de mayor a menor)</h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th style="width:36px;">#</th><th>Curso</th><th>Atrasos</th><th>Post 8:10</th><th class="no-print"></th></tr></thead>
+            <tbody id="asis-ranking-atrasos-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card" id="asis-general-detalle-box" style="display:none;">
+        <h2 class="section-title" style="font-size:15px;" id="asis-general-detalle-title"></h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Alumno</th><th>Atrasos</th><th>Inasistencias</th><th>Total</th></tr></thead>
+            <tbody id="asis-general-detalle-body"></tbody>
+          </table>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="asis-cerrar-detalle-general">Cerrar detalle</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Administración -->
+    <div id="sub-asis-admin" style="display:none;">
+      <div id="asis-admin-locked">
+        <div class="note">Esta sección es solo para Inspectoría General. Ingresa tu nombre y la clave para gestionar la matrícula.</div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="asis-admin-nombre">Tu nombre</label>
+            <select id="asis-admin-nombre">
+              <option value="">Selecciona tu nombre</option>
+              <option value="Luis Cádiz Fuenzalida">Luis Cádiz Fuenzalida</option>
+              <option value="Claudio Valenzuela Fuentes">Claudio Valenzuela Fuentes</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="asis-admin-clave">Clave de Inspectoría</label>
+            <input type="password" id="asis-admin-clave" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-primary" id="asis-admin-ingresar-btn">Ingresar</button>
+        </div>
+        <p id="asis-admin-clave-error" style="display:none;color:var(--danger);font-size:13px;"></p>
+      </div>
+
+      <div id="asis-admin-panel" style="display:none;">
+        <p style="font-size:13px;color:var(--ink-soft);">Conectado como <strong id="asis-admin-usuario-actual"></strong></p>
+
+        <h2 class="section-title" style="font-size:14px;">Importar base de datos desde Excel</h2>
+        <p class="section-desc" style="margin-top:-8px;">Sube la planilla oficial de matrícula (.xls o .xlsx, mismo formato REGISTRO). Se compara curso por curso contra la nómina actual y se detectan altas y bajas automáticamente.</p>
+        <div class="grid-2">
+          <div class="field full">
+            <label for="asis-import-excel-file">Archivo Excel</label>
+            <input type="file" id="asis-import-excel-file" accept=".xls,.xlsx">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="asis-analizar-excel-btn">Analizar archivo</button>
+        </div>
+        <div class="note" id="asis-import-preview-box" style="display:none;">
+          <p id="asis-import-preview-text" style="font-weight:700;"></p>
+          <div class="form-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="asis-confirmar-importacion-btn">Confirmar importación</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="asis-cancelar-importacion-btn">Cancelar</button>
+          </div>
+        </div>
+        <p id="asis-import-msg" style="font-size:13px;font-weight:700;"></p>
+
+        <h2 class="section-title" style="font-size:14px;">Ingresar nuevo alumno</h2>
+        <div class="grid-2">
+          <div class="field">
+            <label for="asis-alta-curso">Curso</label>
+            <select id="asis-alta-curso"></select>
+          </div>
+          <div class="field">
+            <label for="asis-alta-nombre">Nombre completo del alumno</label>
+            <input type="text" id="asis-alta-nombre" placeholder="Ej: PEREZ SOTO JUAN IGNACIO">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="asis-alta-btn" style="color:var(--ok);border-color:var(--ok);">Agregar alumno</button>
+        </div>
+        <div class="note" id="asis-confirm-alta-box" style="display:none;">
+          <p id="asis-confirm-alta-text" style="font-weight:700;"></p>
+          <div class="form-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="asis-confirmar-alta-btn">Confirmar ingreso</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="asis-cancelar-alta-btn">Cancelar</button>
+          </div>
+        </div>
+
+        <h2 class="section-title" style="font-size:14px;">Dar de baja a un alumno</h2>
+        <div class="grid-2">
+          <div class="field">
+            <label for="asis-baja-curso">Curso</label>
+            <select id="asis-baja-curso"></select>
+          </div>
+          <div class="field">
+            <label for="asis-baja-alumno">Alumno</label>
+            <select id="asis-baja-alumno"></select>
+          </div>
+          <div class="field full">
+            <label for="asis-baja-motivo">Motivo</label>
+            <input type="text" id="asis-baja-motivo" value="Retiro del establecimiento">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="asis-baja-btn" style="color:var(--danger);border-color:var(--danger);">Dar de baja</button>
+        </div>
+        <div class="note" id="asis-confirm-baja-box" style="display:none;">
+          <p id="asis-confirm-baja-text" style="font-weight:700;"></p>
+          <div class="form-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="asis-confirmar-baja-btn">Confirmar baja</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="asis-cancelar-baja-btn">Cancelar</button>
+          </div>
+        </div>
+
+        <h2 class="section-title" style="font-size:14px;">Cambiar de curso a un alumno</h2>
+        <div class="grid-2">
+          <div class="field">
+            <label for="asis-cambio-curso-origen">Curso actual</label>
+            <select id="asis-cambio-curso-origen"></select>
+          </div>
+          <div class="field">
+            <label for="asis-cambio-alumno">Alumno</label>
+            <select id="asis-cambio-alumno"></select>
+          </div>
+          <div class="field">
+            <label for="asis-cambio-curso-destino">Nuevo curso</label>
+            <select id="asis-cambio-curso-destino"></select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="asis-cambio-btn">Cambiar de curso</button>
+        </div>
+        <div class="note" id="asis-confirm-cambio-box" style="display:none;">
+          <p id="asis-confirm-cambio-text" style="font-weight:700;"></p>
+          <div class="form-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="asis-confirmar-cambio-btn">Confirmar cambio</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="asis-cancelar-cambio-btn">Cancelar</button>
+          </div>
+        </div>
+        <p id="asis-admin-msg" style="font-size:13px;font-weight:700;"></p>
+
+        <details class="insp-details">
+          <summary>Cambiar mi clave de acceso
+          <p class="section-desc" style="margin:12px 0 8px;">Cada inspector tiene su propia clave. Solo se actualiza la clave de <strong id="asis-clave-usuario-label"></strong>, no la del otro inspector.</p>
+          <div class="grid-2">
+            <div class="field">
+              <label for="asis-clave-actual">Clave actual</label>
+              <input type="password" id="asis-clave-actual" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="asis-clave-nueva">Nueva clave</label>
+              <input type="password" id="asis-clave-nueva" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="asis-clave-nueva-confirm">Confirmar nueva clave</label>
+              <input type="password" id="asis-clave-nueva-confirm" autocomplete="off">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost btn-sm" id="asis-cambiar-clave-btn">Actualizar clave</button>
+          </div>
+        </details>
+
+        <h2 class="section-title" style="font-size:14px;">Cierre de año escolar</h2>
+        <p class="section-desc" style="margin-top:-8px;">Al cerrar un año, sus registros de asistencia quedan bloqueados (solo lectura).</p>
+        <div class="grid-2">
+          <div class="field">
+            <label for="asis-cierre-anio">Año a cerrar</label>
+            <input type="number" id="asis-cierre-anio" placeholder="2026">
+          </div>
+          <div class="field">
+            <label for="asis-cierre-inspector">Inspector General</label>
+            <select id="asis-cierre-inspector">
+              <option value="Claudio Valenzuela Fuentes">Claudio Valenzuela Fuentes</option>
+              <option value="Luis Cádiz Fuenzalida">Luis Cádiz Fuenzalida</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="asis-cierre-clave">Clave</label>
+            <input type="password" id="asis-cierre-clave" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="asis-cerrar-anio-btn" style="color:var(--danger);border-color:var(--danger);">Cerrar año escolar</button>
+        </div>
+        <p id="asis-cierre-anios-info" style="font-size:13px;color:var(--ink-soft);"></p>
+        <div class="grid-2" id="asis-reabrir-anio-row" style="display:none;">
+          <div class="field">
+            <label for="asis-reabrir-anio">Año a reabrir</label>
+            <select id="asis-reabrir-anio"></select>
+          </div>
+          <div class="field">
+            <label for="asis-reabrir-inspector">Inspector General</label>
+            <select id="asis-reabrir-inspector">
+              <option value="Claudio Valenzuela Fuentes">Claudio Valenzuela Fuentes</option>
+              <option value="Luis Cádiz Fuenzalida">Luis Cádiz Fuenzalida</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="asis-reabrir-clave">Clave</label>
+            <input type="password" id="asis-reabrir-clave" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-actions" id="asis-reabrir-actions" style="display:none;">
+          <button type="button" class="btn btn-ghost btn-sm" id="asis-reabrir-anio-btn">Reabrir año</button>
+        </div>
+        <p id="asis-cierre-msg" style="font-size:13px;font-weight:700;"></p>
+
+        <h2 class="section-title" style="font-size:14px;">Historial de movimientos</h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Fecha</th><th>Tipo</th><th>Usuario</th><th>Alumno</th><th>Detalle</th></tr></thead>
+            <tbody id="asis-admin-historial"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seguimiento -->
+    <div id="sub-asis-seguimiento" style="display:none;">
+      <div class="grid-2 no-print">
+        <div class="field">
+          <label for="asis-seg-curso">Curso</label>
+          <select id="asis-seg-curso"><option value="todos">Todos los cursos</option></select>
+        </div>
+        <div class="field">
+          <label for="asis-seg-desde">Desde</label>
+          <input type="date" id="asis-seg-desde">
+        </div>
+        <div class="field">
+          <label for="asis-seg-hasta">Hasta</label>
+          <input type="date" id="asis-seg-hasta">
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <label style="font-size:13px;font-weight:400;display:flex;align-items:center;gap:6px;margin-top:6px;">
+            <input type="checkbox" id="asis-seg-solo-pendientes" checked> Mostrar solo pendientes
+          </label>
+        </div>
+      </div>
+      <div class="form-actions no-print" style="justify-content:flex-start;">
+        <button type="button" class="btn btn-ghost btn-sm" id="asis-cierre-anual-btn">Cierre anual</button>
+        <button type="button" class="btn btn-primary btn-sm" id="asis-generar-pdf-btn">Generar PDF</button>
+        <span id="asis-seg-pdf-msg" style="font-size:13px;font-weight:700;"></span>
+      </div>
+      <div id="asis-seg-print-header" style="margin-bottom:1rem;">
+        <p style="font-size:13px;color:var(--ink-soft);margin:0;">I. Comercial Alberto Valenzuela Llanos · San Fernando</p>
+        <p id="asis-seg-print-titulo" style="font-size:16px;font-weight:700;color:var(--navy-deep);margin:2px 0;">Informe de seguimiento de atrasos e inasistencias</p>
+        <p id="asis-seg-print-rango" style="font-size:12px;color:var(--ink-soft);margin:0;"></p>
+      </div>
+      <div id="asis-seg-contenido"></div>
+    </div>
+  </section>
+
 </main>
 
 <div class="toast" id="toast"></div>
 
 </div><!-- /appContent -->
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
@@ -1893,6 +2390,1205 @@
     const cls = g==='Leve'?'badge-leve':(g==='Grave'?'badge-grave':'badge-gravisima');
     return `<span class="badge ${cls}">${g}</span>`;
   }
+
+  // ---------- Asistencia: atrasos e inasistencias diarias ----------
+  const ASIS_ROSTER = {"1°A": ["ARCHILES RÍOS BASTIÁN EXEQUIEL", "CABRERA JORQUERA ISIDORA ANDREA", "CALQUÍN BECERRA CAMILA VICTORIA", "COLINA BECERRA JORGE EDUARDO", "CUADRA MAYORGA LUCAS ANDRÉS", "FLORES CONCHA ORLANDO EDGARDO", "GONZÁLEZ ROMERO VICENTE AGUSTÍN", "HERNÁNDEZ QUINTERO ERIALETH FERNANDA", "HERRERA ORTEGA CRISTÓBAL IGNACIO", "JAQUE SAAVEDRA EMILIO AGUSTÍN", "MORENO CORTES MARY MAR", "PINO PAREDES TRINIDAD ANAÍS", "QUEZADA PALOMINOS ISIDORA ANAIS", "RIVEROS CARREÑO FRANCHESCA ANDREA", "TOBAR VALDIVIA MÁXIMO WILLIAMS", "VALENZUELA CONTRERAS LISSETTE ANTONIA", "ORELLANA CORNEJO VALENTINA ALEJANDRA", "OSORIO PARRA TOMAS ANTONIO", "HERNANDEZ HEVIA ADRIEL ANTONIO"], "1°B": ["ARENAS TOBAR AYLINN AMANDA", "BARRIOS UZCATEGUI KENYABEL DEL CARMEN", "CABRERA RAMIREZ CARLOS BYRON", "CASTILLO PARDO MARIA ISABEL", "CONTRERAS VERGARA JEAN PIERRE", "CORNEJO ESCOBAR MARTÍN ALONSO", "GARRIDO ASTUDILLO LIZ GRACE", "GARRIDO CARVAJAL LAURA PASCAL", "JARAMILLO RAMÍREZ GABRIEL IGNACIO", "JIRÓN GONZÁLEZ MAXIMILIANO ALEXANDER", "LABRAÑA GÁLVEZ JORGE JESÚS", "METTIG GARCÍA SANTIAGO LEÓN", "MOYA GUERRA CONSTANZA MILY", "SERRANO VENEGAS ANASTASIA ALIET ODETTE", "RIOS PAUCARA JHON MIGUEL", "MORAGA OLGUIN JOSEFA ANTONELLA", "TRABOL SOTO VICENTE ANTONIO", "DÍAS ESPINOZA TRINIDAD IGNACIA", "ANDRADE URTUBIA JAVIERA PAULINA"], "1°C": ["BECERRA NAVARRO SOFÍA IGNACIA", "BOGADO ROJAS MAITE ESTHEFANIA", "CALDERÓN LORCA PAZ BELÉN", "CORNEJO CÁCERES ÉDAN ISMAEL", "CORRAL CABEZAS PÍA ISIDORA", "DÍAZ CARVAJAL MERCEDES ANTONIA", "ESPINOZA MOYA JADIEL ANDRÉS", "FLORES ARAYA NICOLÁS IGNACIO", "GONZÁLEZ ROJAS LUIS FRANCISCO", "IBARRA VALENZUELA MAITE ALEJANDRA", "JILBERTO BUSTOS SERGIO MATEO", "LÓPEZ CAMPOS VICENTE ANDRÉS", "MORALES PÉREZ CRISTAL", "MUÑOZ CASTILLO MATÍAS ALEXIS", "PARDO CARVAJAL CONSTANZA ANDREA", "PEREZ GONZALEZ ABRAHAM JOSE", "ROJAS AHUMADA JAVIER ANDRÉS", "ROJAS CASTRO MIA HERLEIN", "ROJAS ZURITA JUAN PABLO", "VALENZUELA SAAVEDRA AGUSTÍN ALEXANDER", "PÉREZ BRAVO FRANCISCO JAVIER"], "1°D": ["BOLIVAR HERNANDEZ DIEGO GABRIEL", "CAMPOS MENA LEAH ARACELY", "CANTILLANA ACEITUNO MAITE AMARAL", "CHÁVEZ ARIAS AGUSTÍN MAXIMILIANO", "CORNEJO RIQUELME MARTÍN ANDRÉS", "DUARTE SEPÚLVEDA AGUSTINA AMARAL", "FARÍAS ÓRDENES CONSTANZA JACQUELINE", "GÁLVEZ DÍAZ DIEGO FLAMINIO", "GONZÁLEZ DÍAZ CRISTIAN HERNÁN", "GONZÁLEZ POLANCO ZAIRA ANAÍS", "LAGOS MIRA ZAHIRA STEPHANIE", "PINO BALLESTA MAXIMILIANO IGNACIO", "RAMÍREZ MARTÍNEZ MARIANA JIMENA", "RANGEL FAJARDO SOFIA ISABELLA", "ROSALES RODRÍGUEZ ASHLOMINIC ESTRELLA", "TAPIA GONZÁLEZ PABLO IGNACIO", "UBILLA VALENZUELA GINNA APOLONIA", "URRUTIA BRIONES YONHATAN ALEJANDRO", "VALLADARES CORNEJO LISSETTE ANNAISS"], "1°E": ["ALVAREZ TOLOZA DAYAN ALEXIS", "BURDILES FLORES MARÍA FLORENCIA", "CABELLO GONZÁLEZ VICENTE ANTONIO", "CELIS RUZ JULIÁN ALONSO", "CORDERO CABEZAS RUBÉN CARLOS REINEL", "CORNEJO GUAJARDO BENJAMÍN SEBASTIÁN", "FLORES DUARTES RAFAEL ALONSO", "FREDES BECERRA JOAQUÍN ALEJANDRO", "GÓMEZ NÚÑEZ FERNANDA OLIVIA", "GONZÁLEZ DONOSO VALERIA FERNANDA", "GONZÁLEZ OLGUÍN DANIEL IGNACIO", "GONZÁLEZ VALENCIA WILLIAMS JEFERSON", "LÓPEZ BUSTAMANTE JAVIER ALEJANDRO", "MEDINA SALAZAR ISAAC", "MUÑOZ GÓMEZ SIMÓN IGNACIO", "NINA VELIZ JHANET CLARA", "PINO ARENAS MARTÍN NICOLÁS", "RAMÍREZ LETELIER VICENTE ANTONIO", "ROMÁN MENA MARÍA ESPERANZA", "RUBILAR MORAGA LEANDRO ANDRÉS", "OLIVARES SILVA JORGE ANDRES", "APOLONIO ESPINOZA RAÚL IGNACIO"], "1°F": ["ALBORNOZ ESPINOZA FABIÁN ALONSO", "CABEZAS GONZÁLEZ CARLOS CRISTÓBAL", "CELIS FARÍAS LUCAS BENJAMÍN", "CEPEDA CÁCERES AMANDA ANTONELLA", "COFRÉ ROMO RICARDO ANTONIO", "DONOSO MANCILLA CRISTÓBAL RENÉ", "DUARTE CHOQUE KEVIN", "ELIZONDO PEREIRA JAVIERA MONSERRAT", "ESPINOZA VERGARA ALAN BALTAZAR", "FUENZALIDA MADRID MONTSERRAT ANTONIA", "GÓMEZ GÓMEZ JAVIERA ANDREA", "JORQUERA ROMERO ALEXI ALEJANDRO", "LÓPEZ VALENZUELA ALISON CHARLOT", "LORCA ARANEDA MATILDA RAYEN", "LOYOLA ACEVEDO GABRIEL ALONSO", "ROJAS HUENCHULAO ANALÍA MARCELA", "SILVA MARTÍNEZ GABRIELA ALEJANDRA", "PINO CATALAN ISIDORA PASCAL", "CONTRERAS ARAYA VALENTIN AARON", "DONOSO CASTRO KRISHNA ESPERANZA"], "1°G": ["ACEITÓN CONTRERAS IVAN ANDRÉS", "ALBORNOZ RÍOS ANGELO DAMIÁN", "BARRERA GONZÁLEZ IVANNA ISIDORA", "BUSTOS FUENTES FLORENCIA AGUSTINA", "CABRERA GONZÁLEZ MARTINA ESTEFANÍA", "ERAZO ROJAS EMYLI PAZ", "FREIRE MONTENEGRO IRIS SUJEI", "GONZÁLEZ CÁRDENAS CRISTIAN BRAYAN", "GONZÁLEZ CÓRDOVA JOHANS EDGARDO", "MACHUCA DONOSO MARTÍN JOSÉ", "MORALES MUÑOZ JULIÁN ANDRÉS", "NÚÑEZ MATURANA JHENDELEN YAMILET", "PARRA MARTÍNEZ ESTEFANÍA VAITIARE", "PARRAGUEZ BALLESTEROS LUCAS ALEJANDRO", "QUEZADA MUÑOZ ANTONELLA IGNACIA", "RIQUELME FLORES THAÍS AGUSTINA", "ZUÑIGA ROMAN SARA ALEJANDRA", "DURAN FIERRO PAULO ANTONIO"], "2°A": ["ALBORNOZ JARA JOHAN VLADIMIR", "AVILÉS CORRADA JAVIER ANDRÉS", "CÁCERES PARRA VICENTE ARTURO", "CÓRDOVA MILLANAO SEBASTIÁN MATIAS", "DAZA GALARCE JAVIER ESTEBAN", "GONZÁLEZ ROMERO BENJAMÍN ISAAC", "JARA MUÑOZ MATÍAS IGNACIO", "LAGOS QUINTRIQUEO MAXIMILIANO ANDRES", "MENDIVIL CERVANTES CARLOS DANIEL", "MOYA BARRERA ROUSSEMERY SCARLETT", "MUNDACA ROJAS JAVIERA AMARAL", "MUÑOZ CASTRO MARTINA FLORENCIA DE JESÚS", "MUÑOZ LILLO MATÍAS IGNACIO", "NILO CALDERÓN AYLEEN ANTHONNELLA", "OSORIO ARÁNGUIZ LUCAS CRISTIAN", "PEREZ CAMEJO ROBERT EDICTO", "PONCE CÁRDENAS EMILY AMADA", "REYES LOBOS BASTIÁN ANTONIO", "RODRÍGUEZ CÁCERES DANIEL IGNACIO", "ROMÁN HUERTA EMERSON ANTONIO", "RUIZ CONCHA CATALINA ISABEL", "SALGADO LIZANA ALISON ABIGAIL", "TOBAR TORRES LUCAS MAXIMILIANO", "GUERRA CONTRERAS PASCAL MONSERRAT"], "2°B": ["ADRIAZOLA NÚÑEZ MARTINA CONSTANZA", "BERMUDEZ LOPEZ JUAN JOSE", "BERNAL BUSTOS BENJAMÍN ALONSO", "BUSTAMANTE ESCOBAR TOMÁS IGNACIO", "ESCOBAR PEREIRA MATÍAS ANDRÉS", "GAMBOA CLAVERÍA THIARE TRINIDAD ARLENE", "GUTIERREZ QUIJADA FABIOLA VALENTINA", "LEÓN GUTIÉRREZ FRANCISCA ANTONIA", "NAVARRO SAAVEDRA VÍCTOR DAVID", "NEIRA VALDIVIA JARIEL HERNÁN", "PÉREZ CHÁVEZ IGNACIO ANTONIO", "POBLETE MUÑOZ JOAQUÍN THOMAS", "ROJAS HORTA JAVIER EDUARDO", "ROMERO MUÑOZ IGNACIA VAITHIARE", "SAAVEDRA GAETE ESTEBAN ALEXIS", "SANTANDER SANHUEZA PAUL ALEXANDER", "URRUTIA BRIONES BENJAMÍN ALEJANDRO", "URZÚA VERGARA PASCALE ANASTACIA", "VÁSQUEZ BOZO IGNACIO ANSELMO", "VIDAL SEPÚLVEDA ORLANDO DAVID", "ZÚÑIGA CARIS MAXIMILIANO ESTIVEN", "ROJAS ARELLANO ANTHONELLA PERLA FERNANDA"], "2°C": ["BRAVO JIMÉNEZ VÍCTOR ESTEBAN", "CARO VARGAS NICOLÁS ANDRÉS", "FUENZALIDA JILBERTO MARÍA PAZ", "GARCIA GARCIA BRIGHTON BANKS", "IRAIRA FLORES WILLIAM IGNACIO", "LÓPEZ ROMERO AGUSTINA PAZ", "MENDOZA GONZALEZ BRYAN JOSE", "OLIVERA LÓPEZ JULIETA IGNACIA", "RIQUELME BARRA MAXIMILIANO ALONSO", "ROJAS RIQUELME LUIS ALBERTO", "ROJAS SANCHEZ CARLOS JOSE", "SANCHEZ CASTILLO AYMAR CAMILA", "URZÚA VERGARA LUKAS CRISTÓBAL", "VALENZUELA ATENAS AGUSTINA ELENA", "VALERIO INOSTROZA SOFÍA JACQUELINE", "VARGAS AHIJOS ARIEL EDRIAN IGNACIO", "VILLARREAL MORA JOSÉ PEDRO AGUSTÍN", "ZAPATA REBOLLEDO CATALINA ANTONIA", "RUJANO LEON ROSIBETH ANICHAS", "SILVA SILVA JULIO FRANCISCO", "MORALES MORA ZANIRA YAZMIN", "BENITEZ BARAHONA GASPAR ELISEO", "BECERRA UBILLA MILLARAY BELÉN"], "2°D": ["ARAQUE AGUILERA ANGELYS SOFIA", "ASTUDILLO ESCOBAR FRANCISCO ANTONIO", "BARAHONA FARÍAS ROUSE FLORENCIA", "BRIONES MUÑOZ GONZALO IGNACIO", "CÁCERES CERECEDA ROMINA ANTONIA", "CUEVAS VÁSQUEZ MATÍAS IGNACIO", "FIGUEROA MEJÍAS RICARDO ANTONIO", "FLORES MORA DARÍO ALEXIS", "GODOY JORQUERA LUIS RODRIGO", "GONZÁLEZ RAMÍREZ MONSERRAT POLETT", "HUICHICOI ABURTO FERNANDA YAZMIN", "LEAL SIBADA DESIREE CAROLINA", "LIZANA SALGADO BENJAMÍN ALEJANDRO", "MATURANA LÓPEZ AGUSTÍN JOSÉ", "MONARDE INOSTROZA GASPAR ANTHUAN", "MOYA VENEGAS JOAQUÍN ANDRÉS", "PINTO MUÑOZ KATRINA AURORA", "RAMÍREZ JARAMILLO ANTONIA CATALINA", "SALINAS MORALES GUSTAVO RAMÓN", "VALERIO INOSTROZA ALEJANDRO IGNACIO", "CAVIERES CALDERON FELIPE ISAIAS", "CERDA OLGUÍN PASCAL COLOMBA"], "2°E": ["ACEVEDO CIFUENTES THIARE ANAHIS", "AGÜERO AGUILAR VICENTE NICOLAS", "ÁVILA LOBOS MIGUEL ANGEL", "AVILÉS VALENZUELA KEVIN STEVEN", "BUSTAMANTE VARAS ÁLVARO SEBASTIÁN", "CAMPOS PIZARRO JOAQUÍN EMILIANO", "CASTRO GARCIA NAYRELIS NATHALY", "CIOLINA CAYUMÁN GUIANELLA BELÉN", "DÍAZ VALLADARES PILAR ANDREA", "DUME ROOD-SHNYDER", "DUME TOMMY LAURENT", "JIMÉNEZ ALVIAL MAXIMIANO ALBERTO", "JOSEPH WIDENSLEY", "LABBÉ DÍAZ JOEL ELÍAS", "MOSCOSO CARRIEL JORDÁN ANDRÉS", "ORELLANA BECERRA JOAQUÍN IGNACIO", "ORELLANA GÓMEZ JOAQUÍN FERNANDO", "ORMAZÁBAL CORTEZ BALTHAZAR CRISTÓBAL EDUARDO", "PERALTA LOBOS TOMÁS ALEXANDER", "POBLETE BARRIOS MARIO AGUSTÍN", "REYES MORENO DUVAN FELIPE", "ROJAS HUENCHULAO ALEXIS ANTONIO", "TACURI PACO JHASMIN ANDREA", "TAPIA LEIVA ALEX ORLANDO", "ZAMORANO PINO SOFÍA BELLA PASCAL"], "2°F": ["BAENA GIRALDO YHONEIKER STIVEN", "BECERRA DÍAZ HELENA VICTORIA", "DÍAZ TOBAR FELIPE IGNACIO", "GONZÁLEZ GONZÁLEZ EXEQUIEL ANTONIO", "GONZÁLEZ RODRÍGUEZ AGUSTÍN MIGUEL", "GUTIÉRREZ CORTEZ BENJAMÍN ALEXANDER", "HIDALGO FREDES ELIAS DANIEL ANDRES", "INOSTROZA LARA JOEL DAVID", "LOBOS GÓMEZ ISIDORA ANTONIA", "MENESES RÍOS GASPAR IGNACIO", "MUÑOZ SALAZAR SOFÍA ISIDORA", "OSORIO RIQUELME JONATHAN ALEJANDRO", "PARRA DUARTE JOSÉ THOMÁS", "PINO CASTRO CRISTOPHER LUCIANO", "RAMÍREZ MARTÍNEZ ALEJANDRO ESTEBAN", "RAMÍREZ PARRAGUEZ ALICIA MARLEY", "ROMÁN ROA AMALIA ESTEPHANYA", "ROMERO BENAVIDES DANIEL ANDRÉS", "ROZAS VARGAS MAITTE ANGELYNE", "RUIZ GONZÁLEZ MARTINA JOSEFA", "SILVA RAMÍREZ EXEQUIEL ALONSO", "SOTO LAMAS VALENTINA ANTONELLA", "YEE GARCIA ANDREA CATALINA", "MUÑOZ PIZARRO IGNACIA ANAIS", "GONZÁLEZ HERNANDEZ LITSSY ANTONELLA"], "2°G": ["ACEVEDO ARAYA GISELLA ESTRELLA", "ARCE CÁCERES CARLOS MARCELO", "BASCUÑÁN SALDÍA PAZ FLORENCIA", "CARDENAS MADRID LUISANGEL MIGUEL", "ESPÍNOLA PINO FLORENCIA VICTORIA", "MEDINA QUEZADA EVAN ZAID", "MEJIAS GARCIA ORIANNYS CECILIA", "MENDOZA ESPINOZA ERIC IGNACIO", "MUÑOZ SALAZAR SOFÍA ALEJANDRA IGNACIA", "MUÑOZ SALDAÑA DANIEL IGNACIO", "ORTEGA HERNÁNDEZ JERSON MAXIMILIANO", "PACHECO RUMATZ ALAN IGNACIO", "PALACIOS MENDOZA YUNIOR SAMIR", "PATETE PEREZ VALERIA VALENTINA", "PÉREZ CABEZAS CONSTANZA JAVIERA", "POBLETE CONTRERAS ANTONELA MONSERRATT", "RIQUELME CORNEJO KARINA ANTONIA", "RIQUELME CRUZ RENATO ANTONIO", "ROJAS CANALES RENATO BENJAMÍN", "SILVA MARTÍNEZ JESÚS GABRIEL", "VALENZUELA ARANEDA DAMIÁN ANTONIO", "ORMAZABAL CANEO SCARLET ALEXANDRA", "BRAVO PIÑA JOSÉ MARTÍN", "ITURRIAGA ZAMORANO AGATHA DEL MONSERRAT", "SANTANDER BUSTAMANTE FLORENCIA ANTONIA"], "3°A": ["ALDEA SOTO BIANCA MONSERRATT", "ARECHAVALA VALDIVIA MARTÍN IGNACIO", "ASTORGA ACEITÓN NATASHA VALENTINA", "BRAVO CABEZAS HAMBAR CATALINA", "BRIONES JARA CAMILO ANTONIO", "CÁCERES RETAMAL MARTINA BELEN OMAIRA", "CALDERÓN GÓMEZ JAVIERA IGNACIA", "CARREÑO LEÓN MATÍAS ALEJANDRO", "CARRIEL MUÑOZ CONSTANZA SILVANA BELÉN", "CEPEDA FUENTES CRISTOPHER GABRIEL", "CHÁVEZ CHÁVEZ MONZERRAT ESTEFANÍA", "CORTEZ RIVEROS JAVIERA MASSIELL", "DAZAROLA CAMPILLAY DARIELA ALEJANDRA", "DÍAZ ACEITUNO THIARE FERNANDA", "DÍAZ ARRIAGADA PRISCILA AMPARO", "GALAZ ANDRADES VALENTINA ESTEFANÍA", "GONZÁLEZ ROJAS MARCELO GABRIEL", "GUERRA FARÍAS FRANCISCO JAVIER", "HEVIA VERGARA JOSEPHA IGNACIA", "HORMAZÁBAL BUSTAMANTE CONSTANZA BELÉN", "LAFUENTE CASTELLON EYTHAN RUDY", "LOPEZ FRANCO LAURA PAMELA", "MANRÍQUEZ FUENTES BENJAMÍN ELÍAS", "MARTÍNEZ JAQUE ANTONELLA IGNACIA", "MARTÍNEZ PIÑA SEBASTIÁN AMARO", "MOYA OLIVOS LUCAS BASTIÁN", "NARANJO GUERRERO SOFÍA FERNANDA", "PINO ARENAS LUISA MATILDA ANTONIA", "ROZAS MATURANA MARTÍN JAVIER", "TAPIA FERNÁNDEZ ANTONELLA PAZ", "VALENZUELA ATENAS THIARE ANTONELLA", "VIDAL MILLA MASSIEL IGNACIA", "VIDAL MUÑOZ ÁLVARO ANTONIO", "ZEPEDA CARREÑO CATALINA PAZ", "GAMBOA CARO YESICA NICOL ESTEFANIA"], "3°B": ["ACEITÓN PINO JOSÉ ELÍAS ADRIÁN", "ARENAS MORENO MATÍAS FELIPE", "AROS VALENZUELA SEBASTIÁN IGNACIO", "BECERRA DÍAZ EMILIA IGNACIA", "BRAVO DÍAZ RAÚL MARTÍN", "BRIONES SEPÚLVEDA GABRIEL IGNACIO", "CABRERA SALINAS THOMAS ALONSO", "CASTILLO ARENAS MIA SCARLETH ANAHIS", "CASTRO SAN MARTÍN MIGUEL ANGEL", "CUEVAS OSORIO STACEY DANAE", "FARFÁN GALAZ MARTÍN ALONSO", "FARÍAS MUÑOZ BÁRBARA IVONNE", "GAETE MÉNDEZ SOFÍA ELENA", "GALAZ VARGAS PÍA VERÓNICA IGNACIA", "GALLARDO CARRERA ASHLEY MONSERRAT", "JARA GÁLVEZ MATÍAS FERNANDO", "LARENAS PINO FRANCHESCA PAZCAL", "LÓPEZ DÍAZ ANTONIA PAZ", "LOPEZ ZELADA JEN CARLO", "MAUREIRA BUSTOS DANAE MAGDALENA", "MENESES ROMERO ANAIIS AMPARO", "MUÑOZ PINTO SOFÍA ANTONIA", "NAVARRO QUIROZ VALENTINA DANAE", "NOGUERA PRADO EDGARLY CAMILA", "PARRAGUEZ BALLESTEROS LUIS TOMÁS", "RAMÍREZ GONZÁLEZ DALILA NICOL", "ROMERO RIVEROS CAROL MILLARAY", "SAN MARTÍN SOLÍS MAXIMILIANO ALEJANDRO", "SILVA GONZÁLEZ CRISTÓBAL ANDRÉS", "TOBAR SOTO ANTONIA BELÉN", "VALENZUELA HERNÁNDEZ AGUSTINA BELÉN", "VALENZUELA VEGA DILAN MOISÉS", "VARGAS CAÑETE LUIS ALEJANDRO", "PARRAGUEZ ROMERO FLORENCIA IGNACIA"], "3°C": ["ALIAGA NÚÑEZ NYDIA NOEMÍ", "CABELLO LLANCAFIL MATILDA RENATA", "CÁCERES GÓMEZ ESTEBAN ANTONIO", "CALDERÓN GÁLVEZ GENESIS ESPERANZA", "CARREÑO ROJAS CATALINA ANDREA", "CASTELLÓN DOTTIS ALEXIS ENRIQUE", "CAVIERES CORNEJO DAYANET ANTONELA", "CORDERO FARFÁN VÍCTOR JAVIER", "DONOSO ROJAS JAVIER ELÍAS", "GARRIDO ASTUDILLO GABRIELA CONSTANZA", "GÓMEZ NÚÑEZ LEONARDO ALFONSO", "LARENAS CORVALÁN TANIA BETSABET", "LEMUS PINTO ALISON MONSERRAT", "MEDINA CÁCERES MARÍA PAZ", "OSORIO JIMÉNEZ JOAN AGUSTÍN", "QUINTANILLA GONZÁLEZ ANTONIA PASKAL", "SALINAS DÍAZ BENJAMÍN NICOLÁS", "TORRES MANRÍQUEZ MICHELLE CAROLINA", "ABARCA JIMENEZ VALENTINA ALEXANDRA", "GONZALEZ HAYDEN AMELIA CAROLINA"], "3°D": ["ADASME ZÚÑIGA AILIN ANTONELLA PASKAL", "ÁLVAREZ MEZA ALONSO ANDRÉS", "ÁLVAREZ SILVA DENIS ANTONIA", "ARTIAGA BASCUÑÁN JOAN ISAIAS", "CÁCERES LIZANA GIANELLA ANDREA", "CALDERÓN SEPÚLVEDA CRISTIAN FRANCISCO", "CELIS RUZ VICENTE JAMIL RENÉ", "DÍAZ PINO RAYEN AMARAL", "DONOSO GÓMEZ GIANELLA MARIÓN", "FUENTES QUIROZ MÁXIMO EDEMIR", "GONZÁLEZ CARIS MICHEL ALEXIS", "GONZÁLEZ OLMEDO SOFÍA ANELIS", "IBÁÑEZ MOYA FRANK EDUAR", "MANRÍQUEZ AGUAYO OSCAR MAXIMILIANO", "PÉREZ JARAMILLO GABRIELA YARITZA", "QUINTERO DAZA MÁXIMO", "SOTO SILVA LOURDES IGNACIA", "TOLEDO GUERRERO MATÍAS ALONSO", "GUELFI RIQUELME ILIANNE ARLETTE", "RIQUELME CORNEJO ANTONIA ISIDORA"], "3°E": ["ARANCIBIA OSORIO CATALINA ANAÍS", "BRAVO EPUL NAHUEL FERNANDO", "CANALES SILVA NICOLÁS IGNACIO", "CAYUPE EVERT BRANDON MAXIMILIANO", "CORRAL CABEZAS DAVID ISAAC", "FABRES ESPINOZA THOMÁS GONZALO", "GONZÁLEZ ACUÑA VICENTE JESÚS", "GONZÁLEZ QUEZADA MAICOL NICOLÁS", "KONG MOYA DANIEL ELÍAS", "LINARES ARAUJO SANTIAGO JESUS", "LISHAM URRA SIMÓN ALONSO", "LÓPEZ BUSTAMANTE GABRIEL ALEXANDER", "MEZA VALENZUELA ABIGAIL VALENTINA", "MORA LIRA MÁXIMO AUGUSTO", "OLIVARES BECERRA STEVEN ANDRÉS", "ORMAZÁBAL CONTRERAS BENJAMÍN ABEL", "PAREDES CORONADO JOAQUÍN NICOLÁS", "PEÑALOZA REUMAY JAVIER ANTONIO JOSÉ", "PEREIRA BASTÍAS BASTIÁN ALEJANDRO", "PEREZ GONZÁLEZ RENATO BASTIÁN", "PINO AHUMADA JAVIER ALONSO", "PIÑA CHÁVEZ JORGE ALONSO", "ROJAS PALMA JOAQUÍN ALONSO", "RUZ REYES BASTIÁN ANDRÉS", "SALGADO ASTUDILLO KHEVIN ALEXIS", "SALINAS CANDIA MARTÍN ALEJANDRO", "SOTO GALLARDO YOVANY ANTONIO", "SPULER GONZÁLEZ SEBASTIÁN ALEXIS", "TAPIA ROJAS MARTÍN ISMAEL", "VAQUER CASTRO IAN ANTONIO", "VERGARA MUÑOZ BENJAMÍN MATEO", "ZÚÑIGA ESCOBAR DYLAN ROY"], "3°F": ["AGUIRRE ASTORGA FRANCISCA PILAR", "ALEGRÍA CELIS MARCELO ENRIQUE", "APONTE ROMERO EVEN ANTONIO", "BORRERO CASTRO ANDRES DAVID", "CABEZAS VALDERRAMA TOMÁS AGUSTÍN", "CALVO HORTA PATRICK IGNACIO", "CAMPOS MEDINA PEDRO JOAQUÍN IGNACIO", "CASTRO LÓPEZ AMARO ENRIQUE", "CERPA VIDAL MAXIMILIANO TOMÁS", "ESTELLE GONZÁLEZ TRINIDAD IGNACIA", "FABRES ESPINOZA NICOLÁS GONZALO", "GUERRERO IBARRA FRANCHESCA ANAHI", "GUERRERO SALAS CRISTIAN DANIEL", "LIBERONA ARMIJO MARTÍN EDUARDO", "MORALES CABEZAS VICENTE RAFAEL", "NIEVA ALARCÓN FRANCISCA", "ORTIZ TORRES ALEX ANDRÉS", "PEÑA LARA CRISTIAN ORLANDO", "ROGEL CANALES AGUSTÍN ADOLFO", "SALINAS BRAVO FLORENCIA IGNACIA", "SÁNCHEZ LÓPEZ OLIVER", "SILVA SALAZAR CAMILO ANTONIO", "SOTO LEIVA MIA VALERIE", "URRA LÓPEZ ALONSO ESTEBAN", "VALENZUELA ESPINA KEVIN ALEXANDER", "VALENZUELA OLEA CRISTIAN DAMIÁN", "VALVERDE CID TAIS MICOL", "VIDAL SÁNCHEZ EDUARDO JAVIER", "ROJAS ARAVENA CRISTIAN RODRIGO"], "4°A": ["ABARCA GÓMEZ CATALINA EMILIA", "ACUÑA MÁRQUEZ MARTINA ISABEL", "ALVAREZ TOLOZA YERLY JULIANA", "ARÉVALO NÚÑEZ MAXIMILIANO BENJAMÍN", "ARIAS ALARCÓN YASMIN BEATRIZ", "BRAVO LARENAS JOAQUÍN IGNACIO", "BRIONES ZAGAL ISRAEL EDUARDO", "CÁCERES GUERRERO MARÍA FRANCISCA", "CAMPOS MENA MARÍA IGNACIA", "CONTRERAS TOBAR ALESSANDRO DE JESÚS", "DELGADO BARRA ALONDRA NAYENIF", "ESPINOZA SILVA CRISTÓBAL ALEXANDER", "FIERRO DÍAZ AGUSTINA ANTONIA", "GALAZ GAMBOA JAVIERA ANTONIA", "GALAZ SALINAS PASKAL ALONDRA", "HUENTENAO VENEGAS VICENTE IGNACIO", "LEPE RIQUELME ANTONELLA ISIDORA", "LEYTON DUARTE IGNACIA BELÉN", "MEJÍAS JEREZ MANUEL ALEJANDRO", "MORENO NAVARRO SABRINA ALEJANDRA", "NÚÑEZ VILOS MONSERRAT NICOLE", "ORELLANA CASTRO VALENTINA ANTONIA", "OSORIO ARENAS TAMARA ALEJANDRA", "OSORIO SILVA AGUSTINA IGNACIA", "ROMÁN PRIETO ANTONELA CAROLINA", "SOTO RETAMAL ESTEBAN ALEXIS", "TONDRO ACUÑA LUZ MARGARITA", "URDANETA URDANETA CAMILA ALEXANDRA", "VALDERRAMA FLORES ALEXANDER ANTONIO", "VÁSQUEZ MELÉNDEZ JAVIER ALONSO", "VERGARA PAREDES DAMARY DANNAE", "VIDAL SAAVEDRA DIEGO BENJAMÍN", "ZAMBRANO SOLORZANO KIMBERLY PAMELA", "ZÚÑIGA CONTRERAS BRAULIO ALONSO"], "4°B": ["AGUILAR GALAZ PAZ VALENTINA", "ARIAS BRAVO GUSTAVO ADOLFO", "CÁCERES SOTO SOFÍA CATALINA", "CERPA MANRÍQUEZ CRICHNNA ANTONIA", "CHICO CAICEDO SEAN KELEER", "COLICHEO MEZA ISABEL ALEJANDRA", "DELGADO REYES JAVIERA ALEXANDRA", "DÍAZ MENESES JOAQUÍN ALFONSO", "ESCALONA GALAZ MARÍA PAZ VALENTINA", "GÓMEZ PIÑA BALTAZAR ALONSO", "GONZÁLEZ BECERRA DAPHNE ANTONELLA", "GONZÁLEZ MARTÍNEZ ALONSO OCTAVIO ANDRE", "GONZÁLEZ SEPÚLVEDA FERNANDO NICOLÁS", "IBARRA VALENZUELA NICOLÁS EDUARDO", "INOSTROZA ROJAS JASMÍN FLORENTINA", "LARA ESCALONA BETSABET VALENTINA", "LEIVA CRISTI AGUSTÍN EMILIANO", "LOBOS VILLALOBOS ANÍBAL RENÉ", "MADARIAGA NÚÑEZ JAVIERA ANTONIA", "ORZILE GABRIELLA LUCIEN", "RIOS LAGOS MATILDA DE JESÚS", "SALAS GONZÁLEZ MATÍAS ANDRÉS", "SANTIS GATICA NOEMY ESTEFANÍA", "SERRANO VENEGAS ALONDRA FELICINDA", "VALIENTE GONZÁLEZ CORIN ANDREA", "ZAVALA ROMÁN EMILY AMARAL"], "4°C": ["AGURTO LAUX ANNELIZ ESTEPHANÍA", "BELMAR CONTRERAS ALISON MONSERRAT", "CORNEJO FUENZALIDA DAPHNE CATALINA", "FARIAS BECERRA VICENTE ANDRÉS", "GAETE ROMÁN VÍCTOR ENRIQUE", "GODOY TORRES ARIEL", "LLANTÉN SABATHIER JASON STEVEN", "LÓPEZ CORTÉS ESTEBAN MARCELO", "MENESES MELGAR MAITE ANTONELLA", "MENESES MELGAR MELANY ANTONELLA", "MOSCOSO BARRIOS LUIS RENATO", "MUÑOZ GARCÍA ALISON MONSERRAT", "PERDRIEL PINEDO MARCIO FARID", "PÉREZ TORRES MARTÍN ARTURO", "RÍOS ESPINOZA JAZMÍN ARGELIA", "USECHE FERNÁNDEZ EDUARDO JOSÉ", "VALDIVIA ESPINACE MADELEINE JESÚS SERENA", "VARELA GAETE IGNACIA SCARLETT", "VEGA GONZÁLEZ BIANCA ANABELLA"], "4°D": ["ABALOS TORREZ RINA NADIA", "CÁCERES DONOSO ISIDORA VALENTINA", "CARVAJAL OLEA ROUSE ANTONELLA", "CELIS ARENAS EMILIA SARAID", "CHACÓN ARIAS CARLOS BENJAMÍN", "CONCHA RIVERA CONSTANZA CATALINA", "CONTRERAS VERGARA SEBASTIÁN ALBERTO", "DONOSO HERNÁNDEZ PAOLO ANDRÉS", "FLORES ARRIAGADA NICOLE ANTONIA", "GALLARDO CABEZAS AXEL GUILLERMO ALFONSO", "GÓMEZ NUÑEZ PAMELA GISLENE", "GONZALEZ DIAZ JUNIEM PATRICIA", "GONZÁLEZ MORALES HIBIS LILIAN", "LEIVA SILVA EDUARDO ANTONIO", "LUQUE MENESES MATÍAS SALOMÓN", "MUNDACA ROJAS MARTINA ISIDORA", "OYARCE CORNEJO VICTORIA JAVIERA", "PEREZ SAMBRANO JESUS DAVID", "POBLETE CELIS BELÉN ANTONIA", "SALAS PINILLA FRANCISCO IGNACIO"], "4°E": ["ANDRES ESPINOZA MOISES ALESSANDRO", "AVENDAÑO JIMÉNEZ SIMÓN ALEXANDER", "BATISTA LEMOS JORGE AGUSTIN", "BRETT FERNANDEZ SAMUEL ALEJANDRO", "BUSTOS PARDO FELIPE ALFREDO", "CÁCERES MÉNDEZ AXEL JAVIER", "CALQUÍN BECERRA IVAN LUIS", "CÉSPEDES CHACÓN PAZ BELÉN", "CRUZ ZAPATA ESTRELLA SCARLET", "DÍAZ CARVAJAL SIMÓN TOMÁS", "DIAZ UZCATEGUI ANDRES ESTIBENS", "FLORES MORA ISABELLA ANAÍS ANTONIA", "GALAZ HORMAZÁBAL JOSÉ LUIS OSVALDO", "GALLARDO LABRAÑA PAUL IGNACIO", "JARA ECHEVERRÍA ISAIAS ANTONIO", "MACHUCA LIZAMA PATRICIO RAFAEL", "MAUREIRA BUSTOS DUVAN ENRIQUE", "MENA TAPIA RENATO SAMUEL", "NECULMÁN PALOMINOS LUIS HERNÁN", "ORELLANA DÍAZ ANGELA VICTORIA", "ORTEGA ACASIO HECTOR EDUARDO", "PEÑALOZA CONTRERAS JOSE MARTIN", "PEREDO PADILLA ROYER", "PEREIRA LÓPEZ JOAQUÍN OTILIO", "PINO IBARRA MARTIN IGNACIO", "ROMÁN PÉREZ KEVIN PATRICK", "TRONCOSO VALDEBENITO MARTÍN IGNACIO", "VALDERRAMA CERDA JOAQUÍN IVAN", "VALENZUELA MENESES JOEL ANTONIO"], "4°F": ["ALIAGA ROJAS MARÍA PAZ", "ÁVILA MEDINA ANAÍS PASCAL", "BORRERO CASTRO ALAN MATTIAS", "BRIONES MANRÍQUEZ CHRISTIAN ANTUAN", "CALQUÍN TONDRO JOSE ARMANDO", "CELIS GONZÁLEZ JUAN DAVID ELIOT", "DANNA CAVIERES PIERMARIO COSTANZO", "ESPINOZA TORRES MARTIN IGNACIO", "FUENTES GONZÁLEZ THOMAS ENRIQUE", "JARA AZÚA BENJAMÍN FABIÁN", "LECAROS PIZARRO DIEGO AGUSTÍN", "LIZANA FARÍAS CHRISTIAN ANDRÉS", "MERCADO SAN MARTÍN VICENTE ESTEBAN", "MOLINA VALENZUELA ARIEL ESTEBAN", "PALACIOS GONZÁLEZ HÉCTOR ARIEL", "PARRAGUEZ PINO MIA PASCAL", "ROJAS ORELLANA MÁXIMO AGUSTÍN", "ROSSATI ARIAS ANTONELLA", "SEPÚLVEDA MOYA JOAQUÍN STEVEN", "SEPULVEDA SEGOVIA BENJAMÍN ANDRÉS", "SOBARZO PÉREZ EMILIA ANTONELA", "ULLOA TORO IGNACIO ALEJANDRO", "UTEAU CASTILLO JADIEL BRANDON", "VALENZUELA GALAZ ANASTASIA DE LOS ANGELES", "VERGARA MUÑOZ FRANCO MATÍAS", "VILLALÓN SUAREZ GABRIEL BENJAMÍN"]};
+  const ASIS_CURSOS = Object.keys(ASIS_ROSTER);
+  const ASIS_CUTOFF = '08:10';
+  const ASIS_ADMIN_USERS = ['Luis Cádiz Fuenzalida', 'Claudio Valenzuela Fuentes'];
+  const ASIS_FULL_ACCESS_USERS = ['Claudio Valenzuela Fuentes', 'Luis Cádiz Fuenzalida', 'Sandra Bravo', 'Raúl López', 'Álvaro Lisboa'];
+  const ASIS_RESTRICTED_USERS = {
+    'Nery Marín': ['1°A','1°B','1°C'],
+    'María Quiroz': ['1°D','1°E','1°F','1°G'],
+    'Silvia Faúndez': ['2°A','2°B','2°C','2°D'],
+    'Jaqueline Poblete': ['2°E','2°F','2°G'],
+    'Maritza Toledo': ['3°E','3°F','4°E','4°F'],
+    'Edison Valenzuela': ['3°C','3°D','4°C','4°D']
+  };
+  const ASIS_ALL_REGISTRO_USERS = ASIS_FULL_ACCESS_USERS.concat(Object.keys(ASIS_RESTRICTED_USERS));
+
+  let asisCurrentRegistroUser = '';
+  let asisRegistros = [];
+  let asisRosterEventos = [];
+  let asisCursosDesbloqueados = {};
+  let asisAccessKeys = {};
+  ASIS_ADMIN_USERS.forEach(n=>{ asisAccessKeys[n] = 'INCOSAF'; });
+  let asisAniosCerrados = [];
+  let asisRevisados = [];
+  let asisAdminUnlocked = false;
+  let asisCurrentAdminUser = '';
+  let asisPendingAlta = null, asisPendingBaja = null, asisPendingCambio = null, asisPendingImport = null;
+  let asisLastGeneralRows = null;
+
+  function asisAsistenciaId(curso, fecha){ return curso+'_'+fecha; }
+  function asisSafeDocId(s){ return String(s).replace(/\//g,'_').slice(0,1400); }
+
+  function watchAsisRegistros(){
+    onSnapshot(query(collection(db,'asistenciaRegistros')), snap=>{
+      asisRegistros = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      asisRenderCurrentView();
+    }, err=>console.error(err));
+  }
+  function watchAsisRosterEventos(){
+    const q = query(collection(db,'asistenciaRosterEventos'), orderBy('creadoEn','desc'));
+    onSnapshot(q, snap=>{
+      asisRosterEventos = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      asisActualizarCursosDisponibles();
+      if(asisAdminUnlocked) asisPoblarSelectsAdmin();
+    }, err=>console.error(err));
+  }
+  function watchAsisCursosDesbloqueados(){
+    onSnapshot(query(collection(db,'asistenciaCursosDesbloqueados')), snap=>{
+      asisCursosDesbloqueados = {};
+      snap.docs.forEach(d=>{ asisCursosDesbloqueados[d.data().usuario] = d.data().cursos || []; });
+      asisActualizarCursosDisponibles();
+    }, err=>console.error(err));
+  }
+  function watchAsisConfig(){
+    onSnapshot(query(collection(db,'asistenciaConfig')), snap=>{
+      ASIS_ADMIN_USERS.forEach(nombre=>{
+        const d = snap.docs.find(x=>x.id===slugInspector(nombre));
+        asisAccessKeys[nombre] = (d && d.data().accessKey) ? d.data().accessKey : 'INCOSAF';
+      });
+    }, err=>console.error(err));
+  }
+  function watchAsisAniosCerrados(){
+    onSnapshot(query(collection(db,'asistenciaAniosCerrados')), snap=>{
+      const d = snap.docs.find(x=>x.id==='estado');
+      asisAniosCerrados = (d && d.data().anios) ? d.data().anios : [];
+      asisActualizarInfoCierre();
+      asisLoadRegistro();
+    }, err=>console.error(err));
+  }
+  function watchAsisRevisados(){
+    onSnapshot(query(collection(db,'asistenciaRevisados')), snap=>{
+      asisRevisados = snap.docs.map(d=>d.data().caseKey).filter(Boolean);
+      asisRenderCurrentView();
+    }, err=>console.error(err));
+  }
+
+  function asisRenderCurrentView(){
+    const active = document.querySelector('#panel-asistencia .subtab-btn.active');
+    if(!active) return;
+    const sub = active.dataset.subtab;
+    if(sub==='asis-panel') asisRenderPanel();
+    else if(sub==='asis-informe') asisRenderInformeDiario();
+    else if(sub==='asis-general') asisRenderGeneral();
+    else if(sub==='asis-seguimiento') asisRenderSeguimiento();
+    else if(sub==='asis-registrar') asisLoadRegistro();
+  }
+
+  function asisGetRoster(){
+    const roster = {};
+    ASIS_CURSOS.forEach(c=>{ roster[c] = ASIS_ROSTER[c].slice(); });
+    asisRosterEventos.slice().sort((a,b)=>{
+      const ta = a.creadoEn && a.creadoEn.toDate ? a.creadoEn.toDate().getTime() : 0;
+      const tb = b.creadoEn && b.creadoEn.toDate ? b.creadoEn.toDate().getTime() : 0;
+      return ta - tb;
+    }).forEach(ev=>{
+      if(ev.type==='alta'){
+        const arr = roster[ev.curso];
+        if(arr && !arr.includes(ev.nombre)) arr.push(ev.nombre);
+      } else if(ev.type==='baja'){
+        const arr = roster[ev.curso];
+        if(arr){ const i = arr.indexOf(ev.nombre); if(i>=0) arr.splice(i,1); }
+      } else if(ev.type==='cambio'){
+        const o = roster[ev.cursoOrigen];
+        if(o){ const i=o.indexOf(ev.nombre); if(i>=0) o.splice(i,1); }
+        const d2 = roster[ev.cursoDestino];
+        if(d2 && !d2.includes(ev.nombre)) d2.push(ev.nombre);
+      }
+    });
+    return roster;
+  }
+
+  function asisGetUnlockedCursos(usuario){
+    return asisCursosDesbloqueados[usuario] || [];
+  }
+  function asisGetCursosPermitidos(usuario){
+    if(ASIS_FULL_ACCESS_USERS.includes(usuario)) return ASIS_CURSOS.slice();
+    const base = (ASIS_RESTRICTED_USERS[usuario] || []).slice();
+    asisGetUnlockedCursos(usuario).forEach(c=>{ if(!base.includes(c)) base.push(c); });
+    return base;
+  }
+
+  function asisGetAdminPassword(nombre){
+    return asisAccessKeys[nombre] || 'INCOSAF';
+  }
+
+  function asisVerificarClave(){
+    const nombre = document.getElementById('asis-admin-nombre').value.trim();
+    const val = document.getElementById('asis-admin-clave').value;
+    const err = document.getElementById('asis-admin-clave-error');
+    if(!nombre){ err.style.display='block'; err.textContent='Selecciona tu nombre para continuar.'; return; }
+    if(val === asisGetAdminPassword(nombre)){
+      asisAdminUnlocked = true;
+      asisCurrentAdminUser = nombre;
+      document.getElementById('asis-admin-usuario-actual').textContent = nombre;
+      document.getElementById('asis-clave-usuario-label').textContent = nombre;
+      document.getElementById('asis-admin-locked').style.display = 'none';
+      document.getElementById('asis-admin-panel').style.display = 'block';
+      document.getElementById('asis-admin-clave').value = '';
+      err.style.display = 'none';
+      asisPoblarSelectsAdmin();
+      asisActualizarInfoCierre();
+    } else {
+      err.style.display = 'block';
+      err.textContent = 'Clave incorrecta';
+    }
+  }
+
+  async function asisCambiarClaveAcceso(){
+    const actual = document.getElementById('asis-clave-actual').value;
+    const nueva = document.getElementById('asis-clave-nueva').value;
+    const confirmar = document.getElementById('asis-clave-nueva-confirm').value;
+    const msg = document.getElementById('asis-admin-msg');
+    if(actual !== asisGetAdminPassword(asisCurrentAdminUser)){
+      msg.style.color = 'var(--danger)'; msg.textContent = 'La clave actual ingresada no es correcta.'; return;
+    }
+    if(!nueva || nueva.length < 4){
+      msg.style.color = 'var(--danger)'; msg.textContent = 'La nueva clave debe tener al menos 4 caracteres.'; return;
+    }
+    if(nueva !== confirmar){
+      msg.style.color = 'var(--danger)'; msg.textContent = 'Las claves no coinciden.'; return;
+    }
+    try{
+      await setDoc(doc(db,'asistenciaConfig', slugInspector(asisCurrentAdminUser)), { accessKey: nueva }, { merge:true });
+      msg.style.color = 'var(--ok)';
+      msg.textContent = 'Clave de '+asisCurrentAdminUser+' actualizada el '+new Date().toLocaleString('es-CL')+'.';
+      document.getElementById('asis-clave-actual').value = '';
+      document.getElementById('asis-clave-nueva').value = '';
+      document.getElementById('asis-clave-nueva-confirm').value = '';
+    }catch(err){
+      console.error(err);
+      msg.style.color = 'var(--danger)';
+      msg.textContent = 'No se pudo actualizar la clave.';
+    }
+  }
+
+  function asisPoblarUsuarios(){
+    const sel = document.getElementById('asis-registro-usuario');
+    ASIS_ALL_REGISTRO_USERS.forEach(u=>{
+      const o = document.createElement('option'); o.value=u; o.textContent=u;
+      sel.appendChild(o);
+    });
+  }
+
+  function asisOnUsuarioChange(){
+    asisCurrentRegistroUser = document.getElementById('asis-registro-usuario').value;
+    asisActualizarCursosDisponibles();
+  }
+
+  function asisActualizarCursosDisponibles(){
+    const cursoSel = document.getElementById('asis-curso-select');
+    const bloqueadosInfo = document.getElementById('asis-registro-bloqueados-info');
+    const desbloquearBox = document.getElementById('asis-registro-desbloquear-box');
+    const bloquearDeNuevoBox = document.getElementById('asis-registro-bloquear-de-nuevo');
+    if(!cursoSel) return;
+    cursoSel.innerHTML = '';
+    if(!asisCurrentRegistroUser){
+      cursoSel.disabled = true;
+      const o = document.createElement('option'); o.value=''; o.textContent='Selecciona tu usuario primero';
+      cursoSel.appendChild(o);
+      bloqueadosInfo.style.display = 'none';
+      desbloquearBox.style.display = 'none';
+      document.getElementById('asis-registro-body').innerHTML = '';
+      return;
+    }
+    cursoSel.disabled = false;
+    const permitidos = asisGetCursosPermitidos(asisCurrentRegistroUser);
+    permitidos.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; cursoSel.appendChild(o); });
+
+    const esRestringido = !ASIS_FULL_ACCESS_USERS.includes(asisCurrentRegistroUser);
+    const bloqueados = ASIS_CURSOS.filter(c=>!permitidos.includes(c));
+    const desbloqueadosManualmente = esRestringido ? asisGetUnlockedCursos(asisCurrentRegistroUser) : [];
+
+    if(esRestringido && (bloqueados.length>0 || desbloqueadosManualmente.length>0)){
+      if(bloqueados.length>0){
+        bloqueadosInfo.style.display = 'block';
+        bloqueadosInfo.textContent = 'Cursos bloqueados para '+asisCurrentRegistroUser+': '+bloqueados.join(', ');
+      } else bloqueadosInfo.style.display = 'none';
+      desbloquearBox.style.display = 'block';
+      const desbloquearSel = document.getElementById('asis-desbloquear-curso');
+      desbloquearSel.innerHTML = '';
+      bloqueados.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; desbloquearSel.appendChild(o); });
+      if(bloqueados.length===0){ const o=document.createElement('option'); o.value=''; o.textContent='No hay cursos bloqueados'; desbloquearSel.appendChild(o); }
+
+      if(desbloqueadosManualmente.length>0){
+        bloquearDeNuevoBox.style.display = 'block';
+        const bloquearSel = document.getElementById('asis-bloquear-curso');
+        bloquearSel.innerHTML = '';
+        desbloqueadosManualmente.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; bloquearSel.appendChild(o); });
+      } else bloquearDeNuevoBox.style.display = 'none';
+    } else {
+      bloqueadosInfo.style.display = 'none';
+      desbloquearBox.style.display = 'none';
+    }
+    asisLoadRegistro();
+  }
+
+  async function asisDesbloquearCurso(){
+    const curso = document.getElementById('asis-desbloquear-curso').value;
+    const inspector = document.getElementById('asis-desbloquear-inspector').value;
+    const clave = document.getElementById('asis-desbloquear-clave').value;
+    const msg = document.getElementById('asis-desbloquear-msg');
+    if(!curso){ msg.style.color='var(--danger)'; msg.textContent='No hay cursos bloqueados para desbloquear.'; return; }
+    if(clave !== asisGetAdminPassword(inspector)){ msg.style.color='var(--danger)'; msg.textContent='Clave incorrecta para '+inspector+'.'; return; }
+    const list = asisGetUnlockedCursos(asisCurrentRegistroUser).slice();
+    if(!list.includes(curso)) list.push(curso);
+    try{
+      await setDoc(doc(db,'asistenciaCursosDesbloqueados', slugInspector(asisCurrentRegistroUser)), { usuario: asisCurrentRegistroUser, cursos: list }, { merge:true });
+      msg.style.color='var(--ok)';
+      msg.textContent = 'Curso '+curso+' desbloqueado para '+asisCurrentRegistroUser+' por '+inspector+' el '+new Date().toLocaleString('es-CL')+'.';
+      document.getElementById('asis-desbloquear-clave').value = '';
+    }catch(err){ console.error(err); msg.style.color='var(--danger)'; msg.textContent='No se pudo desbloquear.'; }
+  }
+
+  async function asisBloquearCurso(){
+    const curso = document.getElementById('asis-bloquear-curso').value;
+    const inspector = document.getElementById('asis-bloquear-inspector').value;
+    const clave = document.getElementById('asis-bloquear-clave').value;
+    const msg = document.getElementById('asis-desbloquear-msg');
+    if(!curso){ msg.style.color='var(--danger)'; msg.textContent='No hay cursos desbloqueados para bloquear.'; return; }
+    if(clave !== asisGetAdminPassword(inspector)){ msg.style.color='var(--danger)'; msg.textContent='Clave incorrecta para '+inspector+'.'; return; }
+    const list = asisGetUnlockedCursos(asisCurrentRegistroUser).slice();
+    const idx = list.indexOf(curso);
+    if(idx>=0) list.splice(idx,1);
+    try{
+      await setDoc(doc(db,'asistenciaCursosDesbloqueados', slugInspector(asisCurrentRegistroUser)), { usuario: asisCurrentRegistroUser, cursos: list }, { merge:true });
+      msg.style.color='var(--ok)';
+      msg.textContent = 'Curso '+curso+' vuelto a bloquear para '+asisCurrentRegistroUser+' por '+inspector+' el '+new Date().toLocaleString('es-CL')+'.';
+      document.getElementById('asis-bloquear-clave').value = '';
+    }catch(err){ console.error(err); msg.style.color='var(--danger)'; msg.textContent='No se pudo bloquear.'; }
+  }
+
+  function asisNormalizeRecord(raw){
+    const out = {};
+    Object.entries(raw||{}).forEach(([name,val])=>{
+      if(typeof val === 'string') out[name] = { status: val, hora: null, marcadoEn: null };
+      else out[name] = { status: val.status, hora: val.hora||null, marcadoEn: val.marcadoEn||null };
+    });
+    return out;
+  }
+
+  function asisGetAllRecords(){
+    return asisRegistros.map(r=>({ curso: r.curso, fecha: r.fecha, data: asisNormalizeRecord(r.data) }));
+  }
+
+  function asisGetConteosPorAlumno(curso){
+    const conteos = {};
+    asisGetAllRecords().filter(r=>r.curso===curso).forEach(r=>{
+      Object.entries(r.data).forEach(([nombre,entry])=>{
+        if(entry.status!=='atraso' && entry.status!=='inasistencia') return;
+        if(!conteos[nombre]) conteos[nombre] = { atraso:0, inasistencia:0 };
+        conteos[nombre][entry.status]++;
+      });
+    });
+    return conteos;
+  }
+
+  function asisLoadRegistro(){
+    const cursoSel = document.getElementById('asis-curso-select');
+    const fechaInput = document.getElementById('asis-fecha-input');
+    if(!cursoSel || !fechaInput) return;
+    const curso = cursoSel.value;
+    const fecha = fechaInput.value;
+    if(!curso || !fecha) return;
+    const roster = asisGetRoster();
+    const students = roster[curso] || [];
+    const rec = asisRegistros.find(r=>r.curso===curso && r.fecha===fecha);
+    const saved = rec ? asisNormalizeRecord(rec.data) : null;
+    const conteos = asisGetConteosPorAlumno(curso);
+    const tbody = document.getElementById('asis-registro-body');
+    tbody.innerHTML = '';
+    students.forEach((name,i)=>{
+      const entry = saved && saved[name] ? saved[name] : { status:'sin_estado', hora:null, marcadoEn:null };
+      const c = conteos[name] || { atraso:0, inasistencia:0 };
+      const tr = document.createElement('tr');
+      tr.dataset.marcadoEn = entry.marcadoEn || '';
+      tr.innerHTML =
+        '<td>'+(i+1)+'</td>'+
+        '<td title="'+escapeHtml(name)+'">'+escapeHtml(name)+
+          '<br><span style="font-size:11px;font-weight:400;color:var(--ink-soft)">Atrasos: '+c.atraso+' &middot; Inasistencias: '+c.inasistencia+'</span></td>'+
+        '<td><div class="asis-status-group">'+
+          '<button type="button" class="asis-status-btn" data-name="'+encodeURIComponent(name)+'" data-status="sin_estado">Sin estado</button>'+
+          '<button type="button" class="asis-status-btn" data-name="'+encodeURIComponent(name)+'" data-status="presente">Presente</button>'+
+          '<button type="button" class="asis-status-btn" data-name="'+encodeURIComponent(name)+'" data-status="atraso">Atraso</button>'+
+          '<button type="button" class="asis-status-btn" data-name="'+encodeURIComponent(name)+'" data-status="inasistencia">Ausente</button>'+
+          '<input type="time" class="asis-hora-input" value="'+(entry.hora || '08:10')+'">'+
+          '<span class="asis-marcado-info"></span>'+
+        '</div></td>';
+      tbody.appendChild(tr);
+      asisApplyStatus(tr, entry.status || 'sin_estado');
+    });
+
+    const anioFecha = (fecha||'').slice(0,4);
+    const cerrado = anioFecha && asisAniosCerrados.includes(anioFecha);
+    const banner = document.getElementById('asis-cierre-anio-banner');
+    const btnGuardar = document.getElementById('asis-btn-guardar-registro');
+    if(banner) banner.style.display = cerrado ? 'block' : 'none';
+    if(btnGuardar) btnGuardar.disabled = !!cerrado;
+  }
+
+  function asisApplyStatus(tr, status){
+    tr.querySelectorAll('.asis-status-btn').forEach(b=>{
+      b.classList.remove('on-presente','on-atraso','on-inasistencia','on-sinestado');
+      if(b.dataset.status===status){
+        if(status==='sin_estado') b.classList.add('on-sinestado'); else b.classList.add('on-'+status);
+      }
+    });
+    tr.dataset.status = status;
+    const horaInput = tr.querySelector('.asis-hora-input');
+    horaInput.classList.toggle('show', status==='atraso');
+    asisActualizarEtiquetaMarcado(tr);
+  }
+
+  function asisActualizarEtiquetaMarcado(tr){
+    const label = tr.querySelector('.asis-marcado-info');
+    if(!label) return;
+    const iso = tr.dataset.marcadoEn;
+    label.textContent = iso ? 'Marcado '+new Date(iso).toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '';
+  }
+
+  document.getElementById('asis-registro-body').addEventListener('click', (e)=>{
+    const btn = e.target.closest('.asis-status-btn');
+    if(!btn) return;
+    const tr = btn.closest('tr');
+    tr.dataset.marcadoEn = new Date().toISOString();
+    asisApplyStatus(tr, btn.dataset.status);
+  });
+
+  async function asisGuardarRegistro(){
+    const curso = document.getElementById('asis-curso-select').value;
+    const fecha = document.getElementById('asis-fecha-input').value;
+    const msgEl = document.getElementById('asis-save-msg');
+    if(!asisCurrentRegistroUser || !curso){
+      msgEl.style.color = 'var(--danger)';
+      msgEl.textContent = 'Selecciona tu usuario y un curso antes de guardar.';
+      return;
+    }
+    const anioFecha = (fecha||'').slice(0,4);
+    if(anioFecha && asisAniosCerrados.includes(anioFecha)){
+      msgEl.style.color = 'var(--danger)';
+      msgEl.textContent = 'No se puede guardar: el año escolar '+anioFecha+' esta cerrado.';
+      return;
+    }
+    const tbody = document.getElementById('asis-registro-body');
+    const record = {};
+    tbody.querySelectorAll('tr').forEach(tr=>{
+      const anyBtn = tr.querySelector('.asis-status-btn');
+      const name = decodeURIComponent(anyBtn.dataset.name);
+      const status = tr.dataset.status || 'sin_estado';
+      const hora = status==='atraso' ? tr.querySelector('.asis-hora-input').value : null;
+      const marcadoEn = tr.dataset.marcadoEn || null;
+      record[name] = { status, hora, marcadoEn };
+    });
+    try{
+      await setDoc(doc(db,'asistenciaRegistros', asisAsistenciaId(curso,fecha)), {
+        curso, fecha, data: record,
+        actualizadoPor: asisCurrentRegistroUser,
+        actualizadoEn: serverTimestamp()
+      });
+      msgEl.style.color = 'var(--ok)';
+      msgEl.textContent = 'Registro guardado';
+      setTimeout(()=>{ msgEl.textContent=''; }, 2500);
+    }catch(err){
+      console.error(err);
+      msgEl.style.color = 'var(--danger)';
+      msgEl.textContent = 'Error al guardar: ' + (err && err.message ? err.message : err);
+    }
+  }
+
+  function asisRenderPanel(){
+    const cursoFiltro = document.getElementById('asis-panel-curso').value;
+    const desde = document.getElementById('asis-panel-desde').value;
+    const hasta = document.getElementById('asis-panel-hasta').value;
+    const all = asisGetAllRecords().filter(r=>{
+      if(cursoFiltro!=='todos' && r.curso!==cursoFiltro) return false;
+      if(desde && r.fecha<desde) return false;
+      if(hasta && r.fecha>hasta) return false;
+      return true;
+    });
+    let totalAtrasos=0, totalInasistencias=0;
+    const perStudent = {};
+    const diasSet = new Set();
+    all.forEach(r=>{
+      diasSet.add(r.fecha);
+      Object.entries(r.data).forEach(([name,entry])=>{
+        const status = entry.status;
+        if(status!=='atraso' && status!=='inasistencia') return;
+        if(status==='atraso') totalAtrasos++;
+        if(status==='inasistencia') totalInasistencias++;
+        const key = name+' ('+r.curso+')';
+        if(!perStudent[key]) perStudent[key] = { atraso:0, inasistencia:0 };
+        perStudent[key][status]++;
+      });
+    });
+    document.getElementById('asis-m-atrasos').textContent = totalAtrasos;
+    document.getElementById('asis-m-inasistencias').textContent = totalInasistencias;
+    document.getElementById('asis-m-alumnos').textContent = Object.keys(perStudent).length;
+    document.getElementById('asis-m-dias').textContent = diasSet.size;
+
+    const ranked = Object.entries(perStudent)
+      .map(([name,v])=>({name, total: v.atraso+v.inasistencia, atraso:v.atraso, inasistencia:v.inasistencia}))
+      .sort((a,b)=>b.total-a.total).slice(0,10);
+
+    const rankingDiv = document.getElementById('asis-ranking-list');
+    if(ranked.length===0){
+      rankingDiv.innerHTML = '<div class="empty-state">No hay registros en el rango seleccionado.</div>';
+    } else {
+      const maxTotal = Math.max(...ranked.map(r=>r.total),1);
+      rankingDiv.innerHTML = '<ul class="ranking-list">' + ranked.map((r,i)=>{
+        const detalle = (r.atraso?r.atraso+' atr.':'') + (r.atraso&&r.inasistencia?' / ':'') + (r.inasistencia?r.inasistencia+' aus.':'');
+        return '<li>'+
+          '<span class="rank-idx">'+(i+1)+'</span>'+
+          '<span class="rank-name">'+escapeHtml(r.name)+'</span>'+
+          '<span class="rank-bar-wrap"><span class="rank-bar" style="width:'+(r.total/maxTotal*100).toFixed(0)+'%"></span></span>'+
+          '<span class="rank-count">'+detalle+'</span>'+
+        '</li>';
+      }).join('') + '</ul>';
+    }
+    drawBarChart(document.getElementById('asis-chart-top'), ranked.map(r=>[r.name, r.total]));
+  }
+
+  function asisDateStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+  function asisSetPeriodo(tipo){
+    const hoy = new Date();
+    let desde, hasta = new Date(hoy);
+    if(tipo==='semana'){ desde = new Date(hoy); const dow=(hoy.getDay()+6)%7; desde.setDate(hoy.getDate()-dow); }
+    else if(tipo==='mes'){ desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1); }
+    else if(tipo==='anio'){ desde = new Date(hoy.getFullYear(), 0, 1); }
+    document.getElementById('asis-general-desde').value = asisDateStr(desde);
+    document.getElementById('asis-general-hasta').value = asisDateStr(hasta);
+    asisRenderGeneral();
+  }
+
+  function asisRenderGeneral(){
+    const desde = document.getElementById('asis-general-desde').value;
+    const hasta = document.getElementById('asis-general-hasta').value;
+    const all = asisGetAllRecords().filter(r=>{
+      if(desde && r.fecha<desde) return false;
+      if(hasta && r.fecha>hasta) return false;
+      return true;
+    });
+    let totalMatricula=0, totalPresentes=0, totalAtrasos=0, totalPost810=0, totalInasistencias=0, totalRegistrados=0;
+    const diasSet = new Set();
+    const porCurso = {};
+    const roster = asisGetRoster();
+    ASIS_CURSOS.forEach(c=>{ porCurso[c] = { matricula:(roster[c]||[]).length, dias:new Set(), presentes:0, atrasos:0, post810:0, ausentes:0, registrados:0 }; totalMatricula += porCurso[c].matricula; });
+    const porDia = {};
+    all.forEach(r=>{
+      diasSet.add(r.fecha);
+      if(!porDia[r.fecha]) porDia[r.fecha] = { presentes:0, registrados:0 };
+      const pc = porCurso[r.curso];
+      if(pc) pc.dias.add(r.fecha);
+      Object.values(r.data).forEach(entry=>{
+        if(entry.status==='sin_estado') return;
+        if(pc) pc.registrados++;
+        porDia[r.fecha].registrados++;
+        if(entry.status==='presente'){ if(pc) pc.presentes++; porDia[r.fecha].presentes++; }
+        else if(entry.status==='atraso'){
+          if(pc){ pc.presentes++; pc.atrasos++; if(entry.hora && entry.hora>ASIS_CUTOFF) pc.post810++; }
+          porDia[r.fecha].presentes++;
+          if(entry.hora && entry.hora>ASIS_CUTOFF) totalPost810++;
+          totalAtrasos++;
+        } else if(entry.status==='inasistencia'){
+          if(pc) pc.ausentes++;
+          totalInasistencias++;
+        }
+      });
+    });
+    const rows = ASIS_CURSOS.map(c=>{
+      const pc = porCurso[c];
+      const pct = pc.registrados>0 ? Math.round((pc.presentes/pc.registrados)*100) : null;
+      totalPresentes += pc.presentes; totalRegistrados += pc.registrados;
+      return { curso:c, matricula:pc.matricula, dias:pc.dias.size, presentes:pc.presentes, atrasos:pc.atrasos, post810:pc.post810, ausentes:pc.ausentes, pct };
+    });
+    asisLastGeneralRows = rows;
+    document.getElementById('asis-g-matricula').textContent = totalMatricula;
+    document.getElementById('asis-g-dias').textContent = diasSet.size;
+    document.getElementById('asis-g-atrasos').textContent = totalAtrasos;
+    document.getElementById('asis-g-atrasos810').textContent = totalPost810;
+    document.getElementById('asis-g-inasistencias').textContent = totalInasistencias;
+    const pctGeneral = totalRegistrados>0 ? Math.round((totalPresentes/totalRegistrados)*100) : 0;
+    document.getElementById('asis-g-pct').textContent = pctGeneral+'%';
+
+    const tbody = document.getElementById('asis-general-body');
+    tbody.innerHTML = rows.map(r=>
+      '<tr><td>'+r.curso+'</td><td>'+r.matricula+'</td><td>'+r.dias+'</td><td>'+r.presentes+'</td><td>'+r.atrasos+'</td>'+
+      '<td>'+(r.post810>0?'<span class="badge badge-post810">'+r.post810+'</span>':'0')+'</td>'+
+      '<td>'+r.ausentes+'</td><td>'+(r.pct===null?'sin datos':r.pct+'%')+'</td></tr>'
+    ).join('') + '<tr class="asis-total-row"><td>Total colegio</td><td>'+totalMatricula+'</td><td>'+diasSet.size+'</td><td>'+totalPresentes+'</td><td>'+totalAtrasos+'</td><td>'+totalPost810+'</td><td>'+totalInasistencias+'</td><td>'+pctGeneral+'%</td></tr>';
+
+    const fechasOrdenadas = Object.keys(porDia).sort();
+    const trendEntries = fechasOrdenadas.map(f=>{
+      const d = porDia[f];
+      return [f, d.registrados>0 ? Math.round((d.presentes/d.registrados)*100) : 0];
+    });
+    drawLineChart(document.getElementById('asis-chart-trend'), trendEntries);
+
+    asisRenderRankings(rows);
+  }
+
+  function asisRenderRankings(rows){
+    const conAsistencia = rows.filter(r=>r.pct!==null);
+    const sinAsistencia = rows.filter(r=>r.pct===null);
+    const rankingAsistencia = conAsistencia.slice().sort((a,b)=>b.pct-a.pct).concat(sinAsistencia);
+    document.getElementById('asis-ranking-asistencia-body').innerHTML = rankingAsistencia.map((r,i)=>
+      '<tr><td>'+(i+1)+'</td><td>'+r.curso+'</td><td>'+(r.pct===null?'sin datos':r.pct+'%')+'</td><td>'+r.matricula+'</td>'+
+      '<td><button type="button" class="btn btn-ghost btn-sm asis-ver-detalle-btn" data-curso="'+r.curso+'">Ver detalle</button></td></tr>'
+    ).join('');
+    const rankingAtrasos = rows.slice().sort((a,b)=>b.atrasos-a.atrasos);
+    document.getElementById('asis-ranking-atrasos-body').innerHTML = rankingAtrasos.map((r,i)=>
+      '<tr><td>'+(i+1)+'</td><td>'+r.curso+'</td><td>'+r.atrasos+'</td>'+
+      '<td>'+(r.post810>0?'<span class="badge badge-post810">'+r.post810+'</span>':'0')+'</td>'+
+      '<td><button type="button" class="btn btn-ghost btn-sm asis-ver-detalle-btn" data-curso="'+r.curso+'">Ver detalle</button></td></tr>'
+    ).join('');
+  }
+
+  function asisGetDetalleAlumnosCurso(curso, desde, hasta){
+    const registros = asisGetAllRecords().filter(r=>{
+      if(r.curso!==curso) return false;
+      if(desde && r.fecha<desde) return false;
+      if(hasta && r.fecha>hasta) return false;
+      return true;
+    });
+    const porAlumno = {};
+    registros.forEach(r=>{
+      Object.entries(r.data).forEach(([nombre,entry])=>{
+        if(entry.status!=='atraso' && entry.status!=='inasistencia') return;
+        if(!porAlumno[nombre]) porAlumno[nombre] = { atraso:0, inasistencia:0 };
+        porAlumno[nombre][entry.status]++;
+      });
+    });
+    return Object.entries(porAlumno).map(([nombre,v])=>({nombre, atraso:v.atraso, inasistencia:v.inasistencia, total:v.atraso+v.inasistencia})).sort((a,b)=>b.total-a.total);
+  }
+
+  function asisVerDetalleCurso(curso){
+    const desde = document.getElementById('asis-general-desde').value;
+    const hasta = document.getElementById('asis-general-hasta').value;
+    const detalle = asisGetDetalleAlumnosCurso(curso, desde, hasta);
+    document.getElementById('asis-general-detalle-title').textContent = 'Detalle de '+curso+' ('+desde+' a '+hasta+')';
+    const body = document.getElementById('asis-general-detalle-body');
+    body.innerHTML = detalle.length===0
+      ? '<tr><td colspan="4" class="empty-state">Sin atrasos ni inasistencias registradas en este periodo para '+curso+'.</td></tr>'
+      : detalle.map(d=>'<tr><td>'+escapeHtml(d.nombre)+'</td><td>'+d.atraso+'</td><td>'+d.inasistencia+'</td><td>'+d.total+'</td></tr>').join('');
+    const box = document.getElementById('asis-general-detalle-box');
+    box.style.display = 'block';
+    box.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+
+  document.getElementById('asis-ranking-asistencia-body').addEventListener('click', (e)=>{
+    const btn = e.target.closest('.asis-ver-detalle-btn');
+    if(!btn) return;
+    asisVerDetalleCurso(btn.dataset.curso);
+  });
+  document.getElementById('asis-ranking-atrasos-body').addEventListener('click', (e)=>{
+    const btn = e.target.closest('.asis-ver-detalle-btn');
+    if(!btn) return;
+    asisVerDetalleCurso(btn.dataset.curso);
+  });
+
+  function asisCerrarDetalleGeneral(){
+    document.getElementById('asis-general-detalle-box').style.display = 'none';
+  }
+
+  function asisExportarCSV(){
+    if(!asisLastGeneralRows) return;
+    const desde = document.getElementById('asis-general-desde').value;
+    const hasta = document.getElementById('asis-general-hasta').value;
+    let csv = 'Curso,Matricula,Dias registrados,Presentes,Atrasos,Atrasos post 8:10,Ausentes,% Asistencia\n';
+    asisLastGeneralRows.forEach(r=>{
+      csv += [r.curso, r.matricula, r.dias, r.presentes, r.atrasos, r.post810, r.ausentes, (r.pct===null?'sin datos':r.pct+'%')].join(',') + '\n';
+    });
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'informe_asistencia_general_'+desde+'_a_'+hasta+'.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function asisInitAdmin(){
+    if(asisAdminUnlocked){
+      document.getElementById('asis-admin-locked').style.display = 'none';
+      document.getElementById('asis-admin-panel').style.display = 'block';
+      document.getElementById('asis-admin-usuario-actual').textContent = asisCurrentAdminUser;
+      document.getElementById('asis-clave-usuario-label').textContent = asisCurrentAdminUser;
+      asisPoblarSelectsAdmin();
+      asisActualizarInfoCierre();
+    } else {
+      document.getElementById('asis-admin-locked').style.display = 'block';
+      document.getElementById('asis-admin-panel').style.display = 'none';
+    }
+  }
+
+  function asisPoblarSelectsAdmin(){
+    const altaCurso = document.getElementById('asis-alta-curso');
+    const bajaCurso = document.getElementById('asis-baja-curso');
+    const cambioOrigen = document.getElementById('asis-cambio-curso-origen');
+    const cambioDestino = document.getElementById('asis-cambio-curso-destino');
+    [altaCurso,bajaCurso,cambioOrigen,cambioDestino].forEach(sel=>{ sel.innerHTML=''; });
+    ASIS_CURSOS.forEach(c=>{
+      [altaCurso,bajaCurso,cambioOrigen,cambioDestino].forEach(sel=>{
+        const o = document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o);
+      });
+    });
+    asisPoblarAlumnosBaja();
+    asisPoblarAlumnosCambio();
+    asisRenderHistorialAdmin();
+  }
+
+  function asisPoblarAlumnosBaja(){
+    const curso = document.getElementById('asis-baja-curso').value;
+    const roster = asisGetRoster();
+    const sel = document.getElementById('asis-baja-alumno');
+    sel.innerHTML = '';
+    (roster[curso]||[]).forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
+  }
+
+  function asisPoblarAlumnosCambio(){
+    const curso = document.getElementById('asis-cambio-curso-origen').value;
+    const roster = asisGetRoster();
+    const sel = document.getElementById('asis-cambio-alumno');
+    sel.innerHTML = '';
+    (roster[curso]||[]).forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
+  }
+
+  function asisPrepararAlta(){
+    const curso = document.getElementById('asis-alta-curso').value;
+    const nombre = document.getElementById('asis-alta-nombre').value.trim().toUpperCase();
+    const msg = document.getElementById('asis-admin-msg');
+    if(!nombre){ msg.style.color='var(--danger)'; msg.textContent='Ingresa el nombre completo del alumno.'; return; }
+    const roster = asisGetRoster();
+    if(roster[curso] && roster[curso].includes(nombre)){ msg.style.color='var(--danger)'; msg.textContent='Ese alumno ya esta en la lista de '+curso+'.'; return; }
+    asisPendingAlta = { curso, nombre };
+    document.getElementById('asis-confirm-alta-text').textContent = '¿Confirmas ingresar a "'+nombre+'" al curso '+curso+'?';
+    document.getElementById('asis-confirm-alta-box').style.display = 'block';
+    document.getElementById('asis-confirm-baja-box').style.display = 'none';
+    document.getElementById('asis-confirm-cambio-box').style.display = 'none';
+  }
+  function asisCancelarAlta(){ asisPendingAlta = null; document.getElementById('asis-confirm-alta-box').style.display='none'; }
+  async function asisConfirmarAlta(){
+    if(!asisPendingAlta) return;
+    const { curso, nombre } = asisPendingAlta;
+    const msg = document.getElementById('asis-admin-msg');
+    try{
+      await addDoc(collection(db,'asistenciaRosterEventos'), { type:'alta', curso, nombre, usuario: asisCurrentAdminUser, creadoEn: serverTimestamp() });
+      msg.style.color='var(--ok)';
+      msg.textContent = nombre+' fue agregado al curso '+curso+' el '+new Date().toLocaleString('es-CL')+'.';
+      document.getElementById('asis-alta-nombre').value = '';
+    }catch(err){ console.error(err); msg.style.color='var(--danger)'; msg.textContent='No se pudo agregar al alumno.'; }
+    document.getElementById('asis-confirm-alta-box').style.display='none';
+    asisPendingAlta = null;
+  }
+
+  function asisPrepararBaja(){
+    const curso = document.getElementById('asis-baja-curso').value;
+    const alumno = document.getElementById('asis-baja-alumno').value;
+    const motivo = document.getElementById('asis-baja-motivo').value;
+    const msg = document.getElementById('asis-admin-msg');
+    if(!alumno){ msg.style.color='var(--danger)'; msg.textContent='No hay alumnos disponibles en ese curso.'; return; }
+    asisPendingBaja = { curso, alumno, motivo };
+    document.getElementById('asis-confirm-baja-text').textContent = '¿Confirmas dar de baja a "'+alumno+'" del curso '+curso+'?';
+    document.getElementById('asis-confirm-baja-box').style.display = 'block';
+    document.getElementById('asis-confirm-cambio-box').style.display = 'none';
+    document.getElementById('asis-confirm-alta-box').style.display = 'none';
+  }
+  function asisCancelarBaja(){ asisPendingBaja = null; document.getElementById('asis-confirm-baja-box').style.display='none'; }
+  async function asisConfirmarBaja(){
+    if(!asisPendingBaja) return;
+    const { curso, alumno, motivo } = asisPendingBaja;
+    const msg = document.getElementById('asis-admin-msg');
+    try{
+      await addDoc(collection(db,'asistenciaRosterEventos'), { type:'baja', curso, nombre:alumno, motivo, usuario: asisCurrentAdminUser, creadoEn: serverTimestamp() });
+      msg.style.color='var(--ok)';
+      msg.textContent = alumno+' fue dado de baja del curso '+curso+' el '+new Date().toLocaleString('es-CL')+'.';
+      document.getElementById('asis-baja-motivo').value = 'Retiro del establecimiento';
+    }catch(err){ console.error(err); msg.style.color='var(--danger)'; msg.textContent='No se pudo guardar la baja.'; }
+    document.getElementById('asis-confirm-baja-box').style.display='none';
+    asisPendingBaja = null;
+  }
+
+  function asisPrepararCambio(){
+    const cursoOrigen = document.getElementById('asis-cambio-curso-origen').value;
+    const alumno = document.getElementById('asis-cambio-alumno').value;
+    const cursoDestino = document.getElementById('asis-cambio-curso-destino').value;
+    const msg = document.getElementById('asis-admin-msg');
+    if(!alumno){ msg.style.color='var(--danger)'; msg.textContent='No hay alumnos disponibles en ese curso.'; return; }
+    if(cursoOrigen === cursoDestino){ msg.style.color='var(--danger)'; msg.textContent='El curso de destino debe ser distinto al actual.'; return; }
+    asisPendingCambio = { cursoOrigen, cursoDestino, alumno };
+    document.getElementById('asis-confirm-cambio-text').textContent = '¿Confirmas cambiar a "'+alumno+'" de '+cursoOrigen+' a '+cursoDestino+'?';
+    document.getElementById('asis-confirm-cambio-box').style.display = 'block';
+    document.getElementById('asis-confirm-baja-box').style.display = 'none';
+    document.getElementById('asis-confirm-alta-box').style.display = 'none';
+  }
+  function asisCancelarCambio(){ asisPendingCambio = null; document.getElementById('asis-confirm-cambio-box').style.display='none'; }
+  async function asisConfirmarCambio(){
+    if(!asisPendingCambio) return;
+    const { cursoOrigen, cursoDestino, alumno } = asisPendingCambio;
+    const msg = document.getElementById('asis-admin-msg');
+    try{
+      await addDoc(collection(db,'asistenciaRosterEventos'), { type:'cambio', cursoOrigen, cursoDestino, nombre:alumno, usuario: asisCurrentAdminUser, creadoEn: serverTimestamp() });
+      msg.style.color='var(--ok)';
+      msg.textContent = alumno+' fue cambiado de '+cursoOrigen+' a '+cursoDestino+' el '+new Date().toLocaleString('es-CL')+'.';
+    }catch(err){ console.error(err); msg.style.color='var(--danger)'; msg.textContent='No se pudo guardar el cambio.'; }
+    document.getElementById('asis-confirm-cambio-box').style.display='none';
+    asisPendingCambio = null;
+  }
+
+  function asisRenderHistorialAdmin(){
+    const events = asisRosterEventos.slice();
+    const tbody = document.getElementById('asis-admin-historial');
+    if(events.length===0){ tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Sin movimientos registrados.</td></tr>'; return; }
+    tbody.innerHTML = events.map(ev=>{
+      const fecha = ev.creadoEn && ev.creadoEn.toDate ? ev.creadoEn.toDate().toLocaleString('es-CL') : '—';
+      const usuario = escapeHtml(ev.usuario || 'sin registro');
+      if(ev.type==='alta') return '<tr><td>'+fecha+'</td><td>Alta</td><td>'+usuario+'</td><td>'+escapeHtml(ev.nombre)+'</td><td>'+escapeHtml(ev.curso)+'</td></tr>';
+      if(ev.type==='baja') return '<tr><td>'+fecha+'</td><td>Baja</td><td>'+usuario+'</td><td>'+escapeHtml(ev.nombre)+'</td><td>'+escapeHtml(ev.curso)+(ev.motivo?' - '+escapeHtml(ev.motivo):'')+'</td></tr>';
+      return '<tr><td>'+fecha+'</td><td>Cambio</td><td>'+usuario+'</td><td>'+escapeHtml(ev.nombre)+'</td><td>'+escapeHtml(ev.cursoOrigen)+' &rarr; '+escapeHtml(ev.cursoDestino)+'</td></tr>';
+    }).join('');
+  }
+
+  function asisAnalizarExcel(){
+    const fileInput = document.getElementById('asis-import-excel-file');
+    const msg = document.getElementById('asis-import-msg');
+    document.getElementById('asis-import-preview-box').style.display = 'none';
+    asisPendingImport = null;
+    if(!fileInput.files || fileInput.files.length===0){ msg.style.color='var(--danger)'; msg.textContent='Selecciona un archivo Excel primero.'; return; }
+    if(typeof XLSX === 'undefined'){ msg.style.color='var(--danger)'; msg.textContent='No se pudo cargar el lector de Excel. Revisa tu conexión a internet e intenta de nuevo.'; return; }
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    reader.onload = function(e){
+      try{
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, {type:'array'});
+        const rosterActual = asisGetRoster();
+        const altas = [], bajas = [];
+        ASIS_CURSOS.forEach(curso=>{
+          const sheetName = wb.SheetNames.find(sn=>sn.trim()===curso);
+          if(!sheetName) return;
+          const sheet = wb.Sheets[sheetName];
+          const rows = XLSX.utils.sheet_to_json(sheet, {header:1, raw:false, defval:''});
+          const activosImportados = [];
+          for(let i=4;i<rows.length;i++){
+            const row = rows[i] || [];
+            const nombreRaw = (row[4]||'').toString().trim();
+            const retiro = (row[3]||'').toString().trim();
+            if(!nombreRaw) continue;
+            if(/[0-9]/.test(nombreRaw)) continue;
+            if(nombreRaw.split(' ').length < 2) continue;
+            const nombre = nombreRaw.toUpperCase();
+            if(!retiro){ if(!activosImportados.includes(nombre)) activosImportados.push(nombre); }
+          }
+          const actualesCurso = rosterActual[curso] || [];
+          activosImportados.forEach(n=>{ if(!actualesCurso.includes(n)) altas.push({curso, nombre:n}); });
+          actualesCurso.forEach(n=>{ if(!activosImportados.includes(n)) bajas.push({curso, nombre:n}); });
+        });
+        asisPendingImport = { altas, bajas };
+        if(altas.length===0 && bajas.length===0){
+          msg.style.color='var(--ok)'; msg.textContent='La planilla no presenta diferencias con la nómina actual. No hay nada que importar.';
+          asisPendingImport = null; return;
+        }
+        document.getElementById('asis-import-preview-text').textContent = 'Se detectaron '+altas.length+' alumno(s) nuevo(s) y '+bajas.length+' retiro(s) respecto a la nómina actual. ¿Confirmas aplicar estos cambios?';
+        document.getElementById('asis-import-preview-box').style.display = 'block';
+        msg.textContent = '';
+      }catch(err){ msg.style.color='var(--danger)'; msg.textContent='Error al leer el archivo: '+(err&&err.message?err.message:err); }
+    };
+    reader.onerror = function(){ msg.style.color='var(--danger)'; msg.textContent='No se pudo leer el archivo seleccionado.'; };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function asisCancelarImportacion(){
+    asisPendingImport = null;
+    document.getElementById('asis-import-preview-box').style.display = 'none';
+  }
+
+  async function asisConfirmarImportacion(){
+    if(!asisPendingImport) return;
+    const msg = document.getElementById('asis-import-msg');
+    try{
+      const escrituras = [];
+      asisPendingImport.altas.forEach(a=>{
+        escrituras.push(addDoc(collection(db,'asistenciaRosterEventos'), { type:'alta', curso:a.curso, nombre:a.nombre, usuario: asisCurrentAdminUser, creadoEn: serverTimestamp() }));
+      });
+      asisPendingImport.bajas.forEach(b=>{
+        escrituras.push(addDoc(collection(db,'asistenciaRosterEventos'), { type:'baja', curso:b.curso, nombre:b.nombre, motivo:'Retiro según planilla importada', usuario: asisCurrentAdminUser, creadoEn: serverTimestamp() }));
+      });
+      await Promise.all(escrituras);
+      msg.style.color='var(--ok)';
+      msg.textContent = 'Importación aplicada: '+asisPendingImport.altas.length+' alta(s) y '+asisPendingImport.bajas.length+' baja(s), por '+asisCurrentAdminUser+' el '+new Date().toLocaleString('es-CL')+'.';
+      document.getElementById('asis-import-preview-box').style.display = 'none';
+      document.getElementById('asis-import-excel-file').value = '';
+      asisPendingImport = null;
+    }catch(err){ console.error(err); msg.style.color='var(--danger)'; msg.textContent='No se pudo aplicar la importación.'; }
+  }
+
+  function asisActualizarInfoCierre(){
+    const info = document.getElementById('asis-cierre-anios-info');
+    if(!info) return;
+    info.textContent = asisAniosCerrados.length>0 ? 'Años escolares cerrados: '+asisAniosCerrados.join(', ') : 'No hay años escolares cerrados actualmente.';
+    const row = document.getElementById('asis-reabrir-anio-row');
+    const actions = document.getElementById('asis-reabrir-actions');
+    if(asisAniosCerrados.length>0){
+      row.style.display = 'flex';
+      actions.style.display = 'flex';
+      const sel = document.getElementById('asis-reabrir-anio');
+      sel.innerHTML = '';
+      asisAniosCerrados.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.textContent=a; sel.appendChild(o); });
+    } else {
+      row.style.display = 'none';
+      actions.style.display = 'none';
+    }
+  }
+
+  async function asisCerrarAnioEscolar(){
+    const anio = document.getElementById('asis-cierre-anio').value.trim();
+    const inspector = document.getElementById('asis-cierre-inspector').value;
+    const clave = document.getElementById('asis-cierre-clave').value;
+    const msg = document.getElementById('asis-cierre-msg');
+    if(!/^\d{4}$/.test(anio)){ msg.style.color='var(--danger)'; msg.textContent='Ingresa un año válido de 4 dígitos (ej: 2026).'; return; }
+    if(clave !== asisGetAdminPassword(inspector)){ msg.style.color='var(--danger)'; msg.textContent='Clave incorrecta para '+inspector+'.'; return; }
+    const cerrados = asisAniosCerrados.slice();
+    if(!cerrados.includes(anio)) cerrados.push(anio);
+    try{
+      await setDoc(doc(db,'asistenciaAniosCerrados','estado'), { anios: cerrados }, { merge:true });
+      msg.style.color='var(--ok)';
+      msg.textContent = 'Año escolar '+anio+' cerrado por '+inspector+' el '+new Date().toLocaleString('es-CL')+'. Sus registros ya no se pueden modificar.';
+      document.getElementById('asis-cierre-clave').value = '';
+    }catch(err){ console.error(err); msg.style.color='var(--danger)'; msg.textContent='No se pudo cerrar el año.'; }
+  }
+
+  async function asisReabrirAnioEscolar(){
+    const anio = document.getElementById('asis-reabrir-anio').value;
+    const inspector = document.getElementById('asis-reabrir-inspector').value;
+    const clave = document.getElementById('asis-reabrir-clave').value;
+    const msg = document.getElementById('asis-cierre-msg');
+    if(clave !== asisGetAdminPassword(inspector)){ msg.style.color='var(--danger)'; msg.textContent='Clave incorrecta para '+inspector+'.'; return; }
+    const cerrados = asisAniosCerrados.filter(a=>a!==anio);
+    try{
+      await setDoc(doc(db,'asistenciaAniosCerrados','estado'), { anios: cerrados }, { merge:true });
+      msg.style.color='var(--ok)';
+      msg.textContent = 'Año escolar '+anio+' reabierto por '+inspector+' el '+new Date().toLocaleString('es-CL')+'.';
+      document.getElementById('asis-reabrir-clave').value = '';
+    }catch(err){ console.error(err); msg.style.color='var(--danger)'; msg.textContent='No se pudo reabrir el año.'; }
+  }
+
+  function asisCaseKey(curso, fecha, nombre, tipo){ return curso+'|'+fecha+'|'+nombre+'|'+tipo; }
+
+  async function asisToggleRevisado(key, checkbox){
+    const docId = asisSafeDocId(key);
+    try{
+      if(checkbox.checked){
+        await setDoc(doc(db,'asistenciaRevisados', docId), { caseKey:key, marcadoPor: currentUserName||'—', marcadoEn: serverTimestamp() });
+      } else {
+        await deleteDoc(doc(db,'asistenciaRevisados', docId));
+      }
+    }catch(err){ console.error(err); showToast('No se pudo actualizar el estado revisado.'); checkbox.checked = !checkbox.checked; }
+  }
+
+  function asisGetCasosSeguimiento(desde, hasta, cursoFiltro){
+    const all = asisGetAllRecords();
+    const casos = [];
+    all.forEach(r=>{
+      if(cursoFiltro && cursoFiltro!=='todos' && r.curso!==cursoFiltro) return;
+      if(desde && r.fecha<desde) return;
+      if(hasta && r.fecha>hasta) return;
+      Object.entries(r.data).forEach(([nombre,entry])=>{
+        if(entry.status!=='atraso' && entry.status!=='inasistencia') return;
+        const key = asisCaseKey(r.curso, r.fecha, nombre, entry.status);
+        casos.push({ curso:r.curso, fecha:r.fecha, nombre, tipo:entry.status, hora:entry.hora, key });
+      });
+    });
+    casos.sort((a,b)=> a.curso.localeCompare(b.curso) || a.nombre.localeCompare(b.nombre) || a.fecha.localeCompare(b.fecha));
+    return casos;
+  }
+
+  function asisSetCierreAnual(){
+    const anio = new Date().getFullYear();
+    document.getElementById('asis-seg-desde').value = anio+'-01-01';
+    document.getElementById('asis-seg-hasta').value = anio+'-12-31';
+    document.getElementById('asis-seg-solo-pendientes').checked = false;
+    asisRenderSeguimiento();
+  }
+
+  function asisEsCierreAnual(desde, hasta){
+    if(!desde || !hasta) return false;
+    const anio = desde.slice(0,4);
+    return desde===anio+'-01-01' && hasta===anio+'-12-31';
+  }
+
+  function asisRenderSeguimiento(){
+    const curso = document.getElementById('asis-seg-curso').value;
+    const desde = document.getElementById('asis-seg-desde').value;
+    const hasta = document.getElementById('asis-seg-hasta').value;
+    const soloPendientes = document.getElementById('asis-seg-solo-pendientes').checked;
+
+    let casos = asisGetCasosSeguimiento(desde, hasta, curso);
+    if(soloPendientes) casos = casos.filter(c=>!asisRevisados.includes(c.key));
+
+    document.getElementById('asis-seg-print-titulo').textContent = asisEsCierreAnual(desde,hasta) ? 'Informe de cierre anual de atrasos e inasistencias' : 'Informe de seguimiento de atrasos e inasistencias';
+    document.getElementById('asis-seg-print-rango').textContent = 'Periodo: '+desde+' a '+hasta+(curso!=='todos'?' - Curso '+curso:' - Todos los cursos')+(soloPendientes?' - Solo casos pendientes':' - Todos los casos');
+
+    const porCurso = {};
+    casos.forEach(c=>{ if(!porCurso[c.curso]) porCurso[c.curso]=[]; porCurso[c.curso].push(c); });
+    const cursosConCasos = Object.keys(porCurso).sort();
+    const contenedor = document.getElementById('asis-seg-contenido');
+
+    if(cursosConCasos.length===0){
+      contenedor.innerHTML = '<div class="empty-state">No hay casos '+(soloPendientes?'pendientes':'')+' de atraso o inasistencia en el periodo y curso seleccionados.</div>';
+      return;
+    }
+
+    contenedor.innerHTML = cursosConCasos.map(cur=>{
+      const historialCompleto = asisGetCasosSeguimiento('', '', cur);
+      const contadores = {}; const ordinalPorKey = {};
+      historialCompleto.forEach(c=>{
+        const k = c.nombre+'|'+c.tipo;
+        contadores[k] = (contadores[k]||0)+1;
+        ordinalPorKey[c.key] = contadores[k];
+      });
+      const filas = porCurso[cur].map(c=>{
+        const yaRevisado = asisRevisados.includes(c.key);
+        const n = ordinalPorKey[c.key] || 1;
+        const tipoLabel = c.tipo==='atraso'
+          ? '<span class="badge badge-atraso">Atraso N°'+n+(c.hora?' ('+c.hora+')':'')+'</span>'
+          : '<span class="badge badge-inasistencia">Inasistencia (día '+n+')</span>';
+        return '<tr class="'+(yaRevisado?'asis-revisado-row':'')+'">'+
+          '<td>'+escapeHtml(c.nombre)+'</td>'+
+          '<td>'+fmtDate(c.fecha)+'</td>'+
+          '<td>'+tipoLabel+'</td>'+
+          '<td class="no-print"><input type="checkbox" class="asis-revisado-check" data-case-key="'+escapeHtml(c.key)+'" '+(yaRevisado?'checked':'')+'> Revisado</td>'+
+        '</tr>';
+      }).join('');
+      return '<div class="card asis-seg-curso-block">'+
+        '<h2 class="section-title" style="font-size:15px;">'+cur+' - '+porCurso[cur].length+' caso'+(porCurso[cur].length!==1?'s':'')+'</h2>'+
+        '<div class="table-scroll"><table><thead><tr><th>Alumno</th><th style="width:100px">Fecha</th><th style="width:190px">Tipo</th><th class="no-print" style="width:110px">Estado</th></tr></thead>'+
+        '<tbody>'+filas+'</tbody></table></div>'+
+      '</div>';
+    }).join('');
+  }
+
+  document.getElementById('asis-seg-contenido').addEventListener('change', (e)=>{
+    const cb = e.target.closest('.asis-revisado-check');
+    if(!cb) return;
+    asisToggleRevisado(cb.dataset.caseKey, cb);
+  });
+
+  function asisGenerarPDF(){
+    const btnMsg = document.getElementById('asis-seg-pdf-msg');
+    const curso = document.getElementById('asis-seg-curso').value;
+    const desde = document.getElementById('asis-seg-desde').value;
+    const hasta = document.getElementById('asis-seg-hasta').value;
+    const soloPendientes = document.getElementById('asis-seg-solo-pendientes').checked;
+
+    let casos = asisGetCasosSeguimiento(desde, hasta, curso);
+    if(soloPendientes) casos = casos.filter(c=>!asisRevisados.includes(c.key));
+
+    const porCurso = {};
+    casos.forEach(c=>{ if(!porCurso[c.curso]) porCurso[c.curso]=[]; porCurso[c.curso].push(c); });
+    const cursosConCasos = Object.keys(porCurso).sort();
+
+    const pdf = new jsPDF({unit:'mm', format:'a4'});
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const marginLeft = 15;
+    let y = 18;
+
+    function nuevaPaginaSiNecesario(alturaNecesaria){
+      if(y + alturaNecesaria > pageHeight - 15){ pdf.addPage(); y = 18; }
+    }
+
+    const crest = getCrestDataUrl();
+    let textX = marginLeft;
+    if(crest){
+      try{ pdf.addImage(crest, 'PNG', marginLeft, y-5, 11, 15); textX = marginLeft + 11 + 3.5; }catch(e){}
+    }
+
+    pdf.setFontSize(11); pdf.setTextColor(90,90,90);
+    pdf.text('I. Comercial Alberto Valenzuela Llanos - San Fernando', textX, y);
+    y += 7;
+    pdf.setFontSize(15); pdf.setTextColor(14,14,92); pdf.setFont(undefined,'bold');
+    pdf.text(asisEsCierreAnual(desde,hasta) ? 'Informe de cierre anual de atrasos e inasistencias' : 'Informe de seguimiento de atrasos e inasistencias', textX, y);
+    y += 7;
+    pdf.setFont(undefined,'normal'); pdf.setFontSize(10); pdf.setTextColor(90,90,90);
+    const rangoTexto = 'Periodo: '+desde+' a '+hasta+(curso!=='todos'?' - Curso '+curso:' - Todos los cursos')+(soloPendientes?' - Solo casos pendientes':' - Todos los casos');
+    pdf.text(rangoTexto, textX, y);
+    y += 9;
+
+    if(cursosConCasos.length===0){
+      pdf.setTextColor(20,20,20); pdf.setFontSize(11);
+      pdf.text('No hay casos '+(soloPendientes?'pendientes':'')+' de atraso o inasistencia en el periodo y curso seleccionados.', marginLeft, y);
+    } else {
+      cursosConCasos.forEach(cur=>{
+        const historialCompleto = asisGetCasosSeguimiento('', '', cur);
+        const contadores = {}; const ordinalPorKey = {};
+        historialCompleto.forEach(c=>{ const k=c.nombre+'|'+c.tipo; contadores[k]=(contadores[k]||0)+1; ordinalPorKey[c.key]=contadores[k]; });
+
+        nuevaPaginaSiNecesario(14);
+        pdf.setFillColor(242,193,24);
+        pdf.rect(marginLeft, y-5, pageWidth-marginLeft*2, 7.5, 'F');
+        pdf.setTextColor(14,14,92); pdf.setFontSize(11); pdf.setFont(undefined,'bold');
+        pdf.text(cur+'  -  '+porCurso[cur].length+' caso'+(porCurso[cur].length!==1?'s':''), marginLeft+3, y-0.3);
+        y += 8.5;
+        pdf.setFont(undefined,'normal'); pdf.setFontSize(9.5);
+
+        const colAlumnoX = marginLeft, colFechaX = marginLeft+95, colTipoX = marginLeft+125;
+        pdf.setTextColor(120,120,120);
+        pdf.text('Alumno', colAlumnoX, y); pdf.text('Fecha', colFechaX, y); pdf.text('Tipo', colTipoX, y);
+        y += 5;
+        pdf.setDrawColor(220,220,220);
+        pdf.line(marginLeft, y-3.5, pageWidth-marginLeft, y-3.5);
+
+        porCurso[cur].forEach(c=>{
+          nuevaPaginaSiNecesario(6);
+          pdf.setTextColor(20,20,20);
+          const nombreCorto = c.nombre.length>42 ? c.nombre.slice(0,39)+'...' : c.nombre;
+          pdf.text(nombreCorto, colAlumnoX, y);
+          pdf.text(fmtDate(c.fecha), colFechaX, y);
+          const n = ordinalPorKey[c.key] || 1;
+          const tipoTexto = c.tipo==='atraso' ? 'Atraso N°'+n+(c.hora?' ('+c.hora+')':'') : 'Inasistencia (día '+n+')';
+          if(c.tipo==='atraso') pdf.setTextColor(138,90,0); else pdf.setTextColor(179,38,30);
+          pdf.text(tipoTexto, colTipoX, y);
+          y += 5.5;
+        });
+        y += 5;
+      });
+    }
+
+    const nombreArchivo = (asisEsCierreAnual(desde,hasta) ? 'cierre_anual_asistencia_'+desde.slice(0,4) : 'seguimiento_asistencia_'+desde+'_a_'+hasta)+(curso!=='todos'?'_'+curso.replace('°',''):'')+'.pdf';
+    pdf.save(nombreArchivo);
+    if(btnMsg){ btnMsg.style.color='var(--ok)'; btnMsg.textContent='PDF generado: '+nombreArchivo; }
+  }
+
+  function asisInitSelectors(){
+    const panelSel = document.getElementById('asis-panel-curso');
+    const segSel = document.getElementById('asis-seg-curso');
+    ASIS_CURSOS.forEach(c=>{
+      const o2 = document.createElement('option'); o2.value=c; o2.textContent=c; panelSel.appendChild(o2);
+      const o3 = document.createElement('option'); o3.value=c; o3.textContent=c; segSel.appendChild(o3);
+    });
+    const today = asisDateStr(new Date());
+    document.getElementById('asis-fecha-input').value = today;
+    document.getElementById('asis-panel-hasta').value = today;
+    document.getElementById('asis-informe-fecha').value = today;
+    const d = new Date(); d.setDate(d.getDate()-30);
+    document.getElementById('asis-panel-desde').value = asisDateStr(d);
+    const d2 = new Date(); d2.setDate(d2.getDate()-7);
+    document.getElementById('asis-general-desde').value = asisDateStr(d2);
+    document.getElementById('asis-general-hasta').value = today;
+    const d3 = new Date(); d3.setDate(d3.getDate()-30);
+    document.getElementById('asis-seg-desde').value = asisDateStr(d3);
+    document.getElementById('asis-seg-hasta').value = today;
+  }
+
+  document.getElementById('asis-registro-usuario').addEventListener('change', asisOnUsuarioChange);
+  document.getElementById('asis-curso-select').addEventListener('change', asisLoadRegistro);
+  document.getElementById('asis-fecha-input').addEventListener('change', asisLoadRegistro);
+  document.getElementById('asis-btn-guardar-registro').addEventListener('click', asisGuardarRegistro);
+  document.getElementById('asis-desbloquear-btn').addEventListener('click', asisDesbloquearCurso);
+  document.getElementById('asis-bloquear-btn').addEventListener('click', asisBloquearCurso);
+
+  document.getElementById('asis-panel-curso').addEventListener('change', asisRenderPanel);
+  document.getElementById('asis-panel-desde').addEventListener('change', asisRenderPanel);
+  document.getElementById('asis-panel-hasta').addEventListener('change', asisRenderPanel);
+
+  document.getElementById('asis-informe-fecha').addEventListener('change', asisRenderInformeDiario);
+
+  document.getElementById('asis-btn-semana').addEventListener('click', ()=>asisSetPeriodo('semana'));
+  document.getElementById('asis-btn-mes').addEventListener('click', ()=>asisSetPeriodo('mes'));
+  document.getElementById('asis-btn-anio').addEventListener('click', ()=>asisSetPeriodo('anio'));
+  document.getElementById('asis-general-desde').addEventListener('change', asisRenderGeneral);
+  document.getElementById('asis-general-hasta').addEventListener('change', asisRenderGeneral);
+  document.getElementById('asis-exportar-csv').addEventListener('click', asisExportarCSV);
+  document.getElementById('asis-cerrar-detalle-general').addEventListener('click', asisCerrarDetalleGeneral);
+
+  document.getElementById('asis-admin-ingresar-btn').addEventListener('click', asisVerificarClave);
+  document.getElementById('asis-cambiar-clave-btn').addEventListener('click', asisCambiarClaveAcceso);
+  document.getElementById('asis-analizar-excel-btn').addEventListener('click', asisAnalizarExcel);
+  document.getElementById('asis-confirmar-importacion-btn').addEventListener('click', asisConfirmarImportacion);
+  document.getElementById('asis-cancelar-importacion-btn').addEventListener('click', asisCancelarImportacion);
+  document.getElementById('asis-alta-btn').addEventListener('click', asisPrepararAlta);
+  document.getElementById('asis-confirmar-alta-btn').addEventListener('click', asisConfirmarAlta);
+  document.getElementById('asis-cancelar-alta-btn').addEventListener('click', asisCancelarAlta);
+  document.getElementById('asis-baja-curso').addEventListener('change', asisPoblarAlumnosBaja);
+  document.getElementById('asis-baja-btn').addEventListener('click', asisPrepararBaja);
+  document.getElementById('asis-confirmar-baja-btn').addEventListener('click', asisConfirmarBaja);
+  document.getElementById('asis-cancelar-baja-btn').addEventListener('click', asisCancelarBaja);
+  document.getElementById('asis-cambio-curso-origen').addEventListener('change', asisPoblarAlumnosCambio);
+  document.getElementById('asis-cambio-btn').addEventListener('click', asisPrepararCambio);
+  document.getElementById('asis-confirmar-cambio-btn').addEventListener('click', asisConfirmarCambio);
+  document.getElementById('asis-cancelar-cambio-btn').addEventListener('click', asisCancelarCambio);
+  document.getElementById('asis-cerrar-anio-btn').addEventListener('click', asisCerrarAnioEscolar);
+  document.getElementById('asis-reabrir-anio-btn').addEventListener('click', asisReabrirAnioEscolar);
+
+  document.getElementById('asis-seg-curso').addEventListener('change', asisRenderSeguimiento);
+  document.getElementById('asis-seg-desde').addEventListener('change', asisRenderSeguimiento);
+  document.getElementById('asis-seg-hasta').addEventListener('change', asisRenderSeguimiento);
+  document.getElementById('asis-seg-solo-pendientes').addEventListener('change', asisRenderSeguimiento);
+  document.getElementById('asis-cierre-anual-btn').addEventListener('click', asisSetCierreAnual);
+  document.getElementById('asis-generar-pdf-btn').addEventListener('click', asisGenerarPDF);
+
+  document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento'].forEach(key=>{
+        const el = document.getElementById('sub-'+key);
+        if(el) el.style.display = (key===btn.dataset.subtab) ? '' : 'none';
+      });
+      if(btn.dataset.subtab==='asis-panel') asisRenderPanel();
+      if(btn.dataset.subtab==='asis-informe') asisRenderInformeDiario();
+      if(btn.dataset.subtab==='asis-general') asisRenderGeneral();
+      if(btn.dataset.subtab==='asis-admin') asisInitAdmin();
+      if(btn.dataset.subtab==='asis-seguimiento') asisRenderSeguimiento();
+    });
+  });
+
+  function asisRenderInformeDiario(){
+    const fecha = document.getElementById('asis-informe-fecha').value;
+    let totalMatricula=0, totalPresentes=0, totalAtrasos=0, totalPost810=0, totalInasistencias=0, totalRegistrados=0;
+    const rows = [];
+    const roster = asisGetRoster();
+    ASIS_CURSOS.forEach(curso=>{
+      const matricula = (roster[curso]||[]).length;
+      totalMatricula += matricula;
+      const rec = asisRegistros.find(r=>r.curso===curso && r.fecha===fecha);
+      const record = rec ? asisNormalizeRecord(rec.data) : null;
+      let presentes=0, atrasos=0, post810=0, ausentes=0, registrados=0;
+      if(record){
+        Object.values(record).forEach(entry=>{
+          if(entry.status==='sin_estado') return;
+          registrados++;
+          if(entry.status==='presente') presentes++;
+          else if(entry.status==='atraso'){ atrasos++; presentes++; if(entry.hora && entry.hora>ASIS_CUTOFF) post810++; }
+          else if(entry.status==='inasistencia') ausentes++;
+        });
+      }
+      totalPresentes+=presentes; totalAtrasos+=atrasos; totalPost810+=post810; totalInasistencias+=ausentes; totalRegistrados+=registrados;
+      const pct = registrados>0 ? Math.round((presentes/registrados)*100) : null;
+      rows.push({curso, matricula, presentes, atrasos, post810, ausentes, pct, registrados});
+    });
+    document.getElementById('asis-i-matricula').textContent = totalMatricula;
+    document.getElementById('asis-i-asistencia').textContent = totalPresentes;
+    document.getElementById('asis-i-inasistencias').textContent = totalInasistencias;
+    document.getElementById('asis-i-atrasos').textContent = totalAtrasos;
+    document.getElementById('asis-i-atrasos810').textContent = totalPost810;
+    const pctGeneral = totalRegistrados>0 ? Math.round((totalPresentes/totalRegistrados)*100) : 0;
+    document.getElementById('asis-i-pct').textContent = pctGeneral+'%';
+    const tbody = document.getElementById('asis-informe-body');
+    tbody.innerHTML = rows.map(r=>
+      '<tr><td>'+r.curso+'</td><td>'+r.matricula+'</td><td>'+r.presentes+'</td><td>'+r.atrasos+'</td>'+
+      '<td>'+(r.post810>0?'<span class="badge badge-post810">'+r.post810+'</span>':'0')+'</td>'+
+      '<td>'+r.ausentes+'</td><td>'+(r.pct===null?'sin datos':r.pct+'%')+'</td></tr>'
+    ).join('') + '<tr class="asis-total-row"><td>Total colegio</td><td>'+totalMatricula+'</td><td>'+totalPresentes+'</td><td>'+totalAtrasos+'</td><td>'+totalPost810+'</td><td>'+totalInasistencias+'</td><td>'+pctGeneral+'%</td></tr>';
+    document.getElementById('asis-informe-status').textContent = totalRegistrados>0 ? '' : 'Aún no hay registros para esta fecha';
+  }
+
+  asisInitSelectors();
+  asisPoblarUsuarios();
+  asisActualizarCursosDisponibles();
 
   // ---------- Tabs ----------
   document.querySelectorAll('nav.tabs button').forEach(btn=>{
@@ -3906,6 +5602,12 @@
     watchAtencionConfig();
     watchCartas();
     watchCierresCartas();
+    watchAsisRegistros();
+    watchAsisRosterEventos();
+    watchAsisCursosDesbloqueados();
+    watchAsisConfig();
+    watchAsisAniosCerrados();
+    watchAsisRevisados();
     onAuthStateChanged(auth, user=>{
       if(user){ unlockApp(nameForEmail(user.email)); }
       else{ lockApp(); }
