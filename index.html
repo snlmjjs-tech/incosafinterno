@@ -1598,30 +1598,7 @@
       <button class="subtab-btn" data-subtab="asis-general">Informe general</button>
       <button class="subtab-btn" data-subtab="asis-admin">Administración</button>
       <button class="subtab-btn" data-subtab="asis-seguimiento">Seguimiento</button>
-    </div>
-
-    <div class="card" id="asis-paradocente-clave-box" style="display:none;">
-      <details class="insp-details">
-        <summary>Cambiar mi clave de acceso
-        <div class="grid-2" style="margin-top:12px;">
-          <div class="field">
-            <label for="asis-pd-clave-actual">Clave actual</label>
-            <input type="password" id="asis-pd-clave-actual" autocomplete="off">
-          </div>
-          <div class="field">
-            <label for="asis-pd-clave-nueva">Nueva clave (mínimo 6 caracteres)</label>
-            <input type="password" id="asis-pd-clave-nueva" autocomplete="off">
-          </div>
-          <div class="field">
-            <label for="asis-pd-clave-nueva-confirm">Confirmar nueva clave</label>
-            <input type="password" id="asis-pd-clave-nueva-confirm" autocomplete="off">
-          </div>
-        </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-ghost btn-sm" id="asis-pd-cambiar-clave-btn">Actualizar clave</button>
-        </div>
-        <p id="asis-pd-clave-msg" style="font-size:13px;font-weight:700;"></p>
-      </details>
+      <button class="subtab-btn" data-subtab="asis-clave">Cambiar clave</button>
     </div>
 
     <!-- Registrar asistencia -->
@@ -2079,6 +2056,31 @@
         <p id="asis-seg-print-rango" style="font-size:12px;color:var(--ink-soft);margin:0;"></p>
       </div>
       <div id="asis-seg-contenido"></div>
+    </div>
+
+    <!-- Cambiar clave -->
+    <div id="sub-asis-clave" style="display:none;">
+      <div class="card">
+        <h2 class="section-title" style="font-size:15px;">Cambiar mi clave de acceso</h2>
+        <div class="grid-2">
+          <div class="field">
+            <label for="asis-pd-clave-actual">Clave actual</label>
+            <input type="password" id="asis-pd-clave-actual" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="asis-pd-clave-nueva">Nueva clave (mínimo 6 caracteres)</label>
+            <input type="password" id="asis-pd-clave-nueva" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="asis-pd-clave-nueva-confirm">Confirmar nueva clave</label>
+            <input type="password" id="asis-pd-clave-nueva-confirm" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="asis-pd-cambiar-clave-btn">Actualizar clave</button>
+        </div>
+        <p id="asis-pd-clave-msg" style="font-size:13px;font-weight:700;"></p>
+      </div>
     </div>
   </section>
 
@@ -3633,7 +3635,7 @@
     btn.addEventListener('click', ()=>{
       document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
-      ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento'].forEach(key=>{
+      ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento','asis-clave'].forEach(key=>{
         const el = document.getElementById('sub-'+key);
         if(el) el.style.display = (key===btn.dataset.subtab) ? '' : 'none';
       });
@@ -5696,13 +5698,13 @@
   // ---------- Modo paradocente: solo Registrar asistencia, solo sus cursos ----------
   let modoParadocenteActivo = false;
 
-  const ASIS_SUBTABS_PARADOCENTE = ['asis-registrar', 'asis-informe'];
+  const ASIS_SUBTABS_PARADOCENTE = ['asis-registrar', 'asis-informe', 'asis-clave'];
 
   function asisMostrarSubvista(key){
     document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>{
       b.classList.toggle('active', b.dataset.subtab===key);
     });
-    ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento'].forEach(k=>{
+    ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento','asis-clave'].forEach(k=>{
       const el = document.getElementById('sub-'+k);
       if(el) el.style.display = (k===key) ? '' : 'none';
     });
@@ -5730,9 +5732,6 @@
     }
     asisCurrentRegistroUser = nombre;
     asisActualizarCursosDisponibles();
-
-    const claveBox = document.getElementById('asis-paradocente-clave-box');
-    if(claveBox) claveBox.style.display = '';
   }
 
   function desactivarModoParadocente(){
@@ -5754,9 +5753,6 @@
     }
     asisCurrentRegistroUser = '';
     asisActualizarCursosDisponibles();
-
-    const claveBox = document.getElementById('asis-paradocente-clave-box');
-    if(claveBox) claveBox.style.display = 'none';
 
     document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
     document.getElementById('panel-registro').classList.add('active');
