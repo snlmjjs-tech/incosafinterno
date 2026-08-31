@@ -1600,6 +1600,30 @@
       <button class="subtab-btn" data-subtab="asis-seguimiento">Seguimiento</button>
     </div>
 
+    <div class="card" id="asis-paradocente-clave-box" style="display:none;">
+      <details class="insp-details">
+        <summary>Cambiar mi clave de acceso
+        <div class="grid-2" style="margin-top:12px;">
+          <div class="field">
+            <label for="asis-pd-clave-actual">Clave actual</label>
+            <input type="password" id="asis-pd-clave-actual" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="asis-pd-clave-nueva">Nueva clave (mínimo 6 caracteres)</label>
+            <input type="password" id="asis-pd-clave-nueva" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="asis-pd-clave-nueva-confirm">Confirmar nueva clave</label>
+            <input type="password" id="asis-pd-clave-nueva-confirm" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="asis-pd-cambiar-clave-btn">Actualizar clave</button>
+        </div>
+        <p id="asis-pd-clave-msg" style="font-size:13px;font-weight:700;"></p>
+      </details>
+    </div>
+
     <!-- Registrar asistencia -->
     <div id="sub-asis-registrar">
       <div class="grid-2">
@@ -2068,7 +2092,8 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
-    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+    updatePassword, EmailAuthProvider, reauthenticateWithCredential
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
     getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, deleteField, setDoc,
@@ -2802,8 +2827,9 @@
         actualizadoEn: serverTimestamp()
       });
       msgEl.style.color = 'var(--ok)';
-      msgEl.textContent = 'Registro guardado';
-      setTimeout(()=>{ msgEl.textContent=''; }, 2500);
+      msgEl.textContent = 'LOS DATOS HAN SIDO GUARDADOS';
+      showToast('✓ LOS DATOS HAN SIDO GUARDADOS');
+      setTimeout(()=>{ msgEl.textContent=''; }, 3000);
     }catch(err){
       console.error(err);
       msgEl.style.color = 'var(--danger)';
@@ -3563,7 +3589,8 @@
     let totalMatricula=0, totalPresentes=0, totalAtrasos=0, totalPost810=0, totalInasistencias=0, totalRegistrados=0;
     const rows = [];
     const roster = asisGetRoster();
-    ASIS_CURSOS.forEach(curso=>{
+    const cursosVisibles = modoParadocenteActivo ? asisGetCursosPermitidos(asisCurrentRegistroUser) : ASIS_CURSOS;
+    cursosVisibles.forEach(curso=>{
       const matricula = (roster[curso]||[]).length;
       totalMatricula += matricula;
       const rec = asisRegistros.find(r=>r.curso===curso && r.fecha===fecha);
@@ -3594,7 +3621,7 @@
       '<tr><td>'+r.curso+'</td><td>'+r.matricula+'</td><td>'+r.presentes+'</td><td>'+r.atrasos+'</td>'+
       '<td>'+(r.post810>0?'<span class="badge badge-post810">'+r.post810+'</span>':'0')+'</td>'+
       '<td>'+r.ausentes+'</td><td>'+(r.pct===null?'sin datos':r.pct+'%')+'</td></tr>'
-    ).join('') + '<tr class="asis-total-row"><td>Total colegio</td><td>'+totalMatricula+'</td><td>'+totalPresentes+'</td><td>'+totalAtrasos+'</td><td>'+totalPost810+'</td><td>'+totalInasistencias+'</td><td>'+pctGeneral+'%</td></tr>';
+    ).join('') + '<tr class="asis-total-row"><td>'+(modoParadocenteActivo?'Total de tus cursos':'Total colegio')+'</td><td>'+totalMatricula+'</td><td>'+totalPresentes+'</td><td>'+totalAtrasos+'</td><td>'+totalPost810+'</td><td>'+totalInasistencias+'</td><td>'+pctGeneral+'%</td></tr>';
     document.getElementById('asis-informe-status').textContent = totalRegistrados>0 ? '' : 'Aún no hay registros para esta fecha';
   }
 
@@ -5608,6 +5635,18 @@
   // ---------- Modo paradocente: solo Registrar asistencia, solo sus cursos ----------
   let modoParadocenteActivo = false;
 
+  const ASIS_SUBTABS_PARADOCENTE = ['asis-registrar', 'asis-informe'];
+
+  function asisMostrarSubvista(key){
+    document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>{
+      b.classList.toggle('active', b.dataset.subtab===key);
+    });
+    ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento'].forEach(k=>{
+      const el = document.getElementById('sub-'+k);
+      if(el) el.style.display = (k===key) ? '' : 'none';
+    });
+  }
+
   function activarModoParadocente(nombre){
     modoParadocenteActivo = true;
     document.querySelectorAll('nav.tabs button').forEach(b=>{
@@ -5616,12 +5655,11 @@
     document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
     document.getElementById('panel-asistencia').classList.add('active');
 
-    const subtabs = document.querySelector('#panel-asistencia .subtabs');
-    if(subtabs) subtabs.style.display = 'none';
-    ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento'].forEach(key=>{
-      const el = document.getElementById('sub-'+key);
-      if(el) el.style.display = (key==='asis-registrar') ? '' : 'none';
+    // Solo puede registrar asistencia y ver el informe diario de sus propios cursos.
+    document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>{
+      b.style.display = ASIS_SUBTABS_PARADOCENTE.includes(b.dataset.subtab) ? '' : 'none';
     });
+    asisMostrarSubvista('asis-registrar');
 
     const sel = document.getElementById('asis-registro-usuario');
     if(sel){
@@ -5631,14 +5669,17 @@
     }
     asisCurrentRegistroUser = nombre;
     asisActualizarCursosDisponibles();
+
+    const claveBox = document.getElementById('asis-paradocente-clave-box');
+    if(claveBox) claveBox.style.display = '';
   }
 
   function desactivarModoParadocente(){
     if(!modoParadocenteActivo) return;
     modoParadocenteActivo = false;
     document.querySelectorAll('nav.tabs button').forEach(b=>{ b.style.display = ''; });
-    const subtabs = document.querySelector('#panel-asistencia .subtabs');
-    if(subtabs) subtabs.style.display = '';
+    document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>{ b.style.display = ''; });
+    asisMostrarSubvista('asis-registrar');
 
     const sel = document.getElementById('asis-registro-usuario');
     if(sel){
@@ -5653,11 +5694,39 @@
     asisCurrentRegistroUser = '';
     asisActualizarCursosDisponibles();
 
+    const claveBox = document.getElementById('asis-paradocente-clave-box');
+    if(claveBox) claveBox.style.display = 'none';
+
     document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
     document.getElementById('panel-registro').classList.add('active');
     document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
     document.querySelector('nav.tabs button[data-tab="registro"]').classList.add('active');
   }
+
+  document.getElementById('asis-pd-cambiar-clave-btn').addEventListener('click', async ()=>{
+    const actual = document.getElementById('asis-pd-clave-actual').value;
+    const nueva = document.getElementById('asis-pd-clave-nueva').value;
+    const confirmar = document.getElementById('asis-pd-clave-nueva-confirm').value;
+    const msg = document.getElementById('asis-pd-clave-msg');
+    const user = auth.currentUser;
+    if(!user){ msg.style.color='var(--danger)'; msg.textContent='No hay una sesión activa.'; return; }
+    if(!nueva || nueva.length < 6){ msg.style.color='var(--danger)'; msg.textContent='La nueva clave debe tener al menos 6 caracteres.'; return; }
+    if(nueva !== confirmar){ msg.style.color='var(--danger)'; msg.textContent='Las claves no coinciden.'; return; }
+    try{
+      const credential = EmailAuthProvider.credential(user.email, actual);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, nueva);
+      msg.style.color='var(--ok)';
+      msg.textContent = 'Clave actualizada correctamente.';
+      document.getElementById('asis-pd-clave-actual').value = '';
+      document.getElementById('asis-pd-clave-nueva').value = '';
+      document.getElementById('asis-pd-clave-nueva-confirm').value = '';
+    }catch(err){
+      console.error(err);
+      msg.style.color='var(--danger)';
+      msg.textContent = 'No se pudo actualizar la clave. Verifica que la clave actual sea correcta.';
+    }
+  });
 
   logoutBtn.addEventListener('click', ()=>{ signOut(auth); });
 
