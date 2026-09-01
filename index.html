@@ -725,8 +725,8 @@
     <button class="btn btn-gold" id="intranetBtn" type="button">🔒 Intranet</button>
     <form id="pinForm" class="pin-form" style="display:none;">
       <label for="pinInput">Ingrese PIN para entrar a los registros</label>
-      <input type="password" inputmode="numeric" autocomplete="off" id="pinInput" placeholder="••••••" minlength="6" maxlength="12">
-      <p class="pin-hint">El PIN debe tener al menos 6 dígitos.</p>
+      <input type="password" autocomplete="off" id="pinInput" placeholder="••••••" minlength="6" maxlength="64">
+      <p class="pin-hint">La clave debe tener al menos 6 caracteres.</p>
       <p class="pin-error" id="pinError" style="display:none;">PIN incorrecto.</p>
       <div class="pin-actions">
         <button type="button" class="btn btn-ghost" id="pinCancelBtn">Cancelar</button>
@@ -2151,6 +2151,13 @@
     { email: 'jaqueline.poblete@incosafintranet.cl', nombre: 'Jaqueline Poblete' },
     { email: 'maritza.toledo@incosafintranet.cl',  nombre: 'Maritza Toledo' },
     { email: 'edison.valenzuela@incosafintranet.cl', nombre: 'Edison Valenzuela' }
+  ];
+
+  // Dirección: acceso de solo lectura a un panorama general — balance de
+  // suspensiones (Reporte establecimiento), informe de asistencia del día
+  // y el historial de cambios (Auditoría). Ver activarModoDirector más abajo.
+  const DIRECTOR_DIRECTORY = [
+    { email: 'claudio.cid@incosafintranet.cl', nombre: 'Claudio Cid' }
   ];
 
   let records = [];
@@ -5690,6 +5697,12 @@
         return;
       }catch(err){ /* prueba con la siguiente cuenta */ }
     }
+    for(const usuario of DIRECTOR_DIRECTORY){
+      try{
+        await signInWithEmailAndPassword(auth, usuario.email, pin);
+        return;
+      }catch(err){ /* prueba con la siguiente cuenta */ }
+    }
     pinError.style.display = 'block';
     pinInput.value = '';
     pinInput.focus();
@@ -5760,6 +5773,42 @@
     document.querySelector('nav.tabs button[data-tab="registro"]').classList.add('active');
   }
 
+  // ---------- Modo Dirección: solo lectura — balance de suspensiones,
+  // informe de asistencia del día y auditoría (historial de cambios) ----------
+  const DIRECTOR_TABS_PERMITIDOS = ['establecimiento', 'auditoria', 'asistencia'];
+  const ASIS_SUBTABS_DIRECTOR = ['asis-informe', 'asis-clave'];
+  let modoDirectorActivo = false;
+
+  function activarModoDirector(nombre){
+    modoDirectorActivo = true;
+    document.querySelectorAll('nav.tabs button').forEach(b=>{
+      b.style.display = DIRECTOR_TABS_PERMITIDOS.includes(b.dataset.tab) ? '' : 'none';
+    });
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('panel-establecimiento').classList.add('active');
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelector('nav.tabs button[data-tab="establecimiento"]').classList.add('active');
+
+    document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>{
+      b.style.display = ASIS_SUBTABS_DIRECTOR.includes(b.dataset.subtab) ? '' : 'none';
+    });
+    asisMostrarSubvista('asis-informe');
+    asisRenderInformeDiario();
+  }
+
+  function desactivarModoDirector(){
+    if(!modoDirectorActivo) return;
+    modoDirectorActivo = false;
+    document.querySelectorAll('nav.tabs button').forEach(b=>{ b.style.display = ''; });
+    document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>{ b.style.display = ''; });
+    asisMostrarSubvista('asis-registrar');
+
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('panel-registro').classList.add('active');
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelector('nav.tabs button[data-tab="registro"]').classList.add('active');
+  }
+
   document.getElementById('asis-pd-cambiar-clave-btn').addEventListener('click', async ()=>{
     const actual = document.getElementById('asis-pd-clave-actual').value;
     const nueva = document.getElementById('asis-pd-clave-nueva').value;
@@ -5809,12 +5858,19 @@
     onAuthStateChanged(auth, user=>{
       if(user){
         const paradocente = PARADOCENTE_DIRECTORY.find(u=>u.email===user.email);
+        const director = DIRECTOR_DIRECTORY.find(u=>u.email===user.email);
         if(paradocente){
           unlockApp(paradocente.nombre);
+          desactivarModoDirector();
           activarModoParadocente(paradocente.nombre);
+        }else if(director){
+          unlockApp(director.nombre);
+          desactivarModoParadocente();
+          activarModoDirector(director.nombre);
         }else{
           unlockApp(nameForEmail(user.email));
           desactivarModoParadocente();
+          desactivarModoDirector();
         }
       }
       else{ lockApp(); }
