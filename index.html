@@ -5782,32 +5782,58 @@
     pinError.style.display = 'none';
   });
 
-  pinForm.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const pin = pinInput.value;
-    // Prueba el PIN como contraseña contra cada cuenta conocida hasta
-    // encontrar a cuál pertenece (solo hay unas pocas cuentas del colegio).
-    for(const usuario of USER_DIRECTORY){
-      try{
-        await signInWithEmailAndPassword(auth, usuario.email, pin);
-        return; // onAuthStateChanged desbloquea la app al confirmar la sesión.
-      }catch(err){ /* prueba con la siguiente cuenta */ }
-    }
-    for(const usuario of PARADOCENTE_DIRECTORY){
-      try{
-        await signInWithEmailAndPassword(auth, usuario.email, pin);
-        return;
-      }catch(err){ /* prueba con la siguiente cuenta */ }
-    }
-    for(const usuario of DIRECTOR_DIRECTORY){
-      try{
-        await signInWithEmailAndPassword(auth, usuario.email, pin);
-        return;
-      }catch(err){ /* prueba con la siguiente cuenta */ }
-    }
+  const ULTIMO_EMAIL_KEY = 'ultimoEmailLogin';
+
+  function mostrarPinError(mensaje){
+    pinError.textContent = mensaje;
     pinError.style.display = 'block';
     pinInput.value = '';
     pinInput.focus();
+  }
+
+  pinForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const pin = pinInput.value;
+    const todosLosUsuarios = [].concat(USER_DIRECTORY, PARADOCENTE_DIRECTORY, DIRECTOR_DIRECTORY);
+
+    // Si este dispositivo ya inició sesión antes, se prueba primero esa misma
+    // cuenta. Así se evita repetir intentos fallidos contra TODAS las demás
+    // cuentas cada vez que alguien entra, lo que con el tiempo puede hacer
+    // que Firebase bloquee temporalmente una cuenta por "demasiados intentos".
+    const ultimoEmail = localStorage.getItem(ULTIMO_EMAIL_KEY);
+    if(ultimoEmail){
+      const usuario = todosLosUsuarios.find(u=>u.email===ultimoEmail);
+      if(usuario){
+        try{
+          await signInWithEmailAndPassword(auth, usuario.email, pin);
+          return; // onAuthStateChanged desbloquea la app al confirmar la sesión.
+        }catch(err){
+          if(err && err.code==='auth/too-many-requests'){
+            mostrarPinError('Demasiados intentos fallidos. Espera unos minutos e inténtalo nuevamente.');
+            return;
+          }
+          /* prueba con el resto de las cuentas */
+        }
+      }
+    }
+
+    // Prueba el PIN como contraseña contra cada cuenta conocida hasta
+    // encontrar a cuál pertenece (solo hay unas pocas cuentas del colegio).
+    for(const usuario of todosLosUsuarios){
+      if(usuario.email===ultimoEmail) continue; // ya se probó arriba
+      try{
+        await signInWithEmailAndPassword(auth, usuario.email, pin);
+        localStorage.setItem(ULTIMO_EMAIL_KEY, usuario.email);
+        return; // onAuthStateChanged desbloquea la app al confirmar la sesión.
+      }catch(err){
+        if(err && err.code==='auth/too-many-requests'){
+          mostrarPinError('Demasiados intentos fallidos en una de las cuentas. Espera unos minutos e inténtalo nuevamente.');
+          return;
+        }
+        /* prueba con la siguiente cuenta */
+      }
+    }
+    mostrarPinError('PIN incorrecto.');
   });
 
   // ---------- Modo paradocente: solo Registrar asistencia, solo sus cursos ----------
