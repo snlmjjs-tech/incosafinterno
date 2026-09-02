@@ -1335,7 +1335,8 @@
           </div>
           <div class="field">
             <label for="at-alumno">Alumno(a) relacionado (si aplica)</label>
-            <input type="text" id="at-alumno" placeholder="Nombre del alumno">
+            <input type="text" id="at-alumno" placeholder="Nombre del alumno" list="at-alumno-list">
+            <datalist id="at-alumno-list"></datalist>
           </div>
           <div class="field">
             <label for="at-curso">Curso / Estamento</label>
@@ -2173,6 +2174,7 @@
   let auditLog = [];
   let retiros = [];
   let retiroNombreCursoMap = {};
+  let atAlumnoCursoMap = {};
   let retiroAsistencias = [];
   let retiroInspLog = [];
   let retiroAccessKey = 'INCOSAF';
@@ -2492,6 +2494,7 @@
       asisActualizarCursosDisponibles();
       if(asisAdminUnlocked) asisPoblarSelectsAdmin();
       retiroDatalistBuild();
+      atDatalistBuild();
     }, err=>console.error(err));
   }
   function watchAsisCursosDesbloqueados(){
@@ -3710,6 +3713,7 @@
   asisPoblarUsuarios();
   asisActualizarCursosDisponibles();
   retiroDatalistBuild();
+  atDatalistBuild();
 
   // ---------- Tabs ----------
   document.querySelectorAll('nav.tabs button').forEach(btn=>{
@@ -4378,6 +4382,37 @@
     if(cursoDelAlumno && !retiroCursoTextoAAsis(cursoInput.value)){
       cursoInput.value = asisCursoATextoRetiro(cursoDelAlumno);
       retiroDatalistBuild();
+    }
+  });
+
+  // ---------- Atención a la comunidad: autocompletado desde la base de matrícula ----------
+  // Mismo mecanismo y misma base de datos que en Retiro de estudiantes.
+  function atDatalistBuild(){
+    const datalist = document.getElementById('at-alumno-list');
+    const cursoInput = document.getElementById('at-curso');
+    if(!datalist || !cursoInput) return;
+    const roster = asisGetRoster();
+    const cursoAsis = retiroCursoTextoAAsis(cursoInput.value);
+    atAlumnoCursoMap = {};
+    const nombres = [];
+    (cursoAsis ? [cursoAsis] : ASIS_CURSOS).forEach(c=>{
+      (roster[c]||[]).forEach(n=>{
+        atAlumnoCursoMap[n] = c;
+        nombres.push(n);
+      });
+    });
+    datalist.innerHTML = nombres.map(n=>`<option value="${escapeHtml(n)}">`).join('');
+  }
+
+  document.getElementById('at-curso').addEventListener('input', atDatalistBuild);
+  document.getElementById('at-alumno').addEventListener('input', ()=>{
+    const alumnoInput = document.getElementById('at-alumno');
+    const cursoInput = document.getElementById('at-curso');
+    const nombre = alumnoInput.value.trim().toUpperCase();
+    const cursoDelAlumno = atAlumnoCursoMap[nombre];
+    if(cursoDelAlumno && !retiroCursoTextoAAsis(cursoInput.value)){
+      cursoInput.value = asisCursoATextoRetiro(cursoDelAlumno);
+      atDatalistBuild();
     }
   });
 
