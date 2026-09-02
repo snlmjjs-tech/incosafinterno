@@ -1598,6 +1598,7 @@
       <button class="subtab-btn" data-subtab="asis-general">Informe general</button>
       <button class="subtab-btn" data-subtab="asis-admin">Administración</button>
       <button class="subtab-btn" data-subtab="asis-seguimiento">Seguimiento</button>
+      <button class="subtab-btn" data-subtab="asis-importar">Importar matrícula</button>
       <button class="subtab-btn" data-subtab="asis-clave">Cambiar clave</button>
     </div>
 
@@ -1851,26 +1852,6 @@
       <div id="asis-admin-panel" style="display:none;">
         <p style="font-size:13px;color:var(--ink-soft);">Conectado como <strong id="asis-admin-usuario-actual"></strong></p>
 
-        <h2 class="section-title" style="font-size:14px;">Importar base de datos desde Excel</h2>
-        <p class="section-desc" style="margin-top:-8px;">Sube la planilla oficial de matrícula (.xls o .xlsx, mismo formato REGISTRO). Se compara curso por curso contra la nómina actual y se detectan altas y bajas automáticamente.</p>
-        <div class="grid-2">
-          <div class="field full">
-            <label for="asis-import-excel-file">Archivo Excel</label>
-            <input type="file" id="asis-import-excel-file" accept=".xls,.xlsx">
-          </div>
-        </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-ghost btn-sm" id="asis-analizar-excel-btn">Analizar archivo</button>
-        </div>
-        <div class="note" id="asis-import-preview-box" style="display:none;">
-          <p id="asis-import-preview-text" style="font-weight:700;"></p>
-          <div class="form-actions">
-            <button type="button" class="btn btn-primary btn-sm" id="asis-confirmar-importacion-btn">Confirmar importación</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="asis-cancelar-importacion-btn">Cancelar</button>
-          </div>
-        </div>
-        <p id="asis-import-msg" style="font-size:13px;font-weight:700;"></p>
-
         <h2 class="section-title" style="font-size:14px;">Ingresar nuevo alumno</h2>
         <div class="grid-2">
           <div class="field">
@@ -2056,6 +2037,31 @@
         <p id="asis-seg-print-rango" style="font-size:12px;color:var(--ink-soft);margin:0;"></p>
       </div>
       <div id="asis-seg-contenido"></div>
+    </div>
+
+    <!-- Importar matrícula -->
+    <div id="sub-asis-importar" style="display:none;">
+      <div class="card">
+        <h2 class="section-title" style="font-size:15px;">Importar base de datos desde Excel</h2>
+        <p class="section-desc" style="margin-top:-8px;">Sube la planilla oficial de matrícula (.xls o .xlsx, mismo formato REGISTRO). Se compara curso por curso contra la nómina actual y se detectan altas y bajas automáticamente.</p>
+        <div class="grid-2">
+          <div class="field full">
+            <label for="asis-import-excel-file">Archivo Excel</label>
+            <input type="file" id="asis-import-excel-file" accept=".xls,.xlsx">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="asis-analizar-excel-btn">Analizar archivo</button>
+        </div>
+        <div class="note" id="asis-import-preview-box" style="display:none;">
+          <p id="asis-import-preview-text" style="font-weight:700;"></p>
+          <div class="form-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="asis-confirmar-importacion-btn">Confirmar importación</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="asis-cancelar-importacion-btn">Cancelar</button>
+          </div>
+        </div>
+        <p id="asis-import-msg" style="font-size:13px;font-weight:700;"></p>
+      </div>
     </div>
 
     <!-- Cambiar clave -->
@@ -3319,14 +3325,14 @@
     try{
       const escrituras = [];
       asisPendingImport.altas.forEach(a=>{
-        escrituras.push(addDoc(collection(db,'asistenciaRosterEventos'), { type:'alta', curso:a.curso, nombre:a.nombre, usuario: asisCurrentAdminUser, creadoEn: serverTimestamp() }));
+        escrituras.push(addDoc(collection(db,'asistenciaRosterEventos'), { type:'alta', curso:a.curso, nombre:a.nombre, usuario: currentUserName || '—', creadoEn: serverTimestamp() }));
       });
       asisPendingImport.bajas.forEach(b=>{
-        escrituras.push(addDoc(collection(db,'asistenciaRosterEventos'), { type:'baja', curso:b.curso, nombre:b.nombre, motivo:'Retiro según planilla importada', usuario: asisCurrentAdminUser, creadoEn: serverTimestamp() }));
+        escrituras.push(addDoc(collection(db,'asistenciaRosterEventos'), { type:'baja', curso:b.curso, nombre:b.nombre, motivo:'Retiro según planilla importada', usuario: currentUserName || '—', creadoEn: serverTimestamp() }));
       });
       await Promise.all(escrituras);
       msg.style.color='var(--ok)';
-      msg.textContent = 'Importación aplicada: '+asisPendingImport.altas.length+' alta(s) y '+asisPendingImport.bajas.length+' baja(s), por '+asisCurrentAdminUser+' el '+new Date().toLocaleString('es-CL')+'.';
+      msg.textContent = 'Importación aplicada: '+asisPendingImport.altas.length+' alta(s) y '+asisPendingImport.bajas.length+' baja(s), por '+(currentUserName||'—')+' el '+new Date().toLocaleString('es-CL')+'.';
       document.getElementById('asis-import-preview-box').style.display = 'none';
       document.getElementById('asis-import-excel-file').value = '';
       asisPendingImport = null;
@@ -3642,7 +3648,7 @@
     btn.addEventListener('click', ()=>{
       document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
-      ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento','asis-clave'].forEach(key=>{
+      ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento','asis-importar','asis-clave'].forEach(key=>{
         const el = document.getElementById('sub-'+key);
         if(el) el.style.display = (key===btn.dataset.subtab) ? '' : 'none';
       });
@@ -5717,7 +5723,7 @@
     document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>{
       b.classList.toggle('active', b.dataset.subtab===key);
     });
-    ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento','asis-clave'].forEach(k=>{
+    ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento','asis-importar','asis-clave'].forEach(k=>{
       const el = document.getElementById('sub-'+k);
       if(el) el.style.display = (k===key) ? '' : 'none';
     });
