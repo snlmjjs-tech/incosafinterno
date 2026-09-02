@@ -974,6 +974,7 @@
       <button class="subtab-btn active" data-subtab="retiro-nuevo">Nuevo retiro</button>
       <button class="subtab-btn" data-subtab="retiro-historial">Historial</button>
       <button class="subtab-btn" data-subtab="retiro-stats">Estadísticas</button>
+      <button class="subtab-btn" data-subtab="retiro-importar">Importar matrícula</button>
     </div>
 
     <!-- Nuevo retiro -->
@@ -990,7 +991,8 @@
           </div>
           <div class="field">
             <label for="ret-alumno">Nombre del alumno</label>
-            <input type="text" id="ret-alumno" placeholder="Nombre y apellidos" required>
+            <input type="text" id="ret-alumno" placeholder="Nombre y apellidos" list="ret-alumno-list" required>
+            <datalist id="ret-alumno-list"></datalist>
           </div>
           <div class="field">
             <label for="ret-curso">Curso</label>
@@ -1243,6 +1245,31 @@
           <h2 class="section-title" style="font-size:15px;">Evolución de retiros por fecha</h2>
           <canvas id="retChartFecha" class="stat-canvas"></canvas>
         </div>
+      </div>
+    </div>
+
+    <!-- Importar matrícula -->
+    <div id="sub-retiro-importar" style="display:none;">
+      <div class="card">
+        <h2 class="section-title" style="font-size:15px;">Importar base de datos desde Excel</h2>
+        <p class="section-desc" style="margin-top:-8px;">Sube la planilla oficial de matrícula (.xls o .xlsx, mismo formato REGISTRO). Se compara curso por curso contra la nómina actual y se detectan altas y bajas automáticamente. Esta es la misma base de datos que alimenta el autocompletado de "Nombre del alumno" en Nuevo retiro y los cursos de Asistencia.</p>
+        <div class="grid-2">
+          <div class="field full">
+            <label for="asis-import-excel-file">Archivo Excel</label>
+            <input type="file" id="asis-import-excel-file" accept=".xls,.xlsx">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="asis-analizar-excel-btn">Analizar archivo</button>
+        </div>
+        <div class="note" id="asis-import-preview-box" style="display:none;">
+          <p id="asis-import-preview-text" style="font-weight:700;"></p>
+          <div class="form-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="asis-confirmar-importacion-btn">Confirmar importación</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="asis-cancelar-importacion-btn">Cancelar</button>
+          </div>
+        </div>
+        <p id="asis-import-msg" style="font-size:13px;font-weight:700;"></p>
       </div>
     </div>
   </section>
@@ -1598,7 +1625,6 @@
       <button class="subtab-btn" data-subtab="asis-general">Informe general</button>
       <button class="subtab-btn" data-subtab="asis-admin">Administración</button>
       <button class="subtab-btn" data-subtab="asis-seguimiento">Seguimiento</button>
-      <button class="subtab-btn" data-subtab="asis-importar">Importar matrícula</button>
       <button class="subtab-btn" data-subtab="asis-clave">Cambiar clave</button>
     </div>
 
@@ -2039,31 +2065,6 @@
       <div id="asis-seg-contenido"></div>
     </div>
 
-    <!-- Importar matrícula -->
-    <div id="sub-asis-importar" style="display:none;">
-      <div class="card">
-        <h2 class="section-title" style="font-size:15px;">Importar base de datos desde Excel</h2>
-        <p class="section-desc" style="margin-top:-8px;">Sube la planilla oficial de matrícula (.xls o .xlsx, mismo formato REGISTRO). Se compara curso por curso contra la nómina actual y se detectan altas y bajas automáticamente.</p>
-        <div class="grid-2">
-          <div class="field full">
-            <label for="asis-import-excel-file">Archivo Excel</label>
-            <input type="file" id="asis-import-excel-file" accept=".xls,.xlsx">
-          </div>
-        </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-ghost btn-sm" id="asis-analizar-excel-btn">Analizar archivo</button>
-        </div>
-        <div class="note" id="asis-import-preview-box" style="display:none;">
-          <p id="asis-import-preview-text" style="font-weight:700;"></p>
-          <div class="form-actions">
-            <button type="button" class="btn btn-primary btn-sm" id="asis-confirmar-importacion-btn">Confirmar importación</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="asis-cancelar-importacion-btn">Cancelar</button>
-          </div>
-        </div>
-        <p id="asis-import-msg" style="font-size:13px;font-weight:700;"></p>
-      </div>
-    </div>
-
     <!-- Cambiar clave -->
     <div id="sub-asis-clave" style="display:none;">
       <div class="card">
@@ -2151,7 +2152,9 @@
   // solo ven la pestaña Asistencia y únicamente para registrar asistencia
   // en sus propios cursos (ver activarModoParadocente más abajo).
   const PARADOCENTE_DIRECTORY = [
-    { email: 'nery.marin@incosafintranet.cl',      nombre: 'Nery Marín' },
+    // Nery Marín, a diferencia del resto de las paradocentes, también tiene
+    // acceso completo a la pestaña Retiro de estudiantes (excepción puntual).
+    { email: 'nery.marin@incosafintranet.cl',      nombre: 'Nery Marín', tabsExtra: ['retiro'] },
     { email: 'maria.quiroz@incosafintranet.cl',    nombre: 'María Quiroz' },
     { email: 'silvia.faundez@incosafintranet.cl',  nombre: 'Silvia Faúndez' },
     { email: 'jaqueline.poblete@incosafintranet.cl', nombre: 'Jaqueline Poblete' },
@@ -2169,6 +2172,7 @@
   let records = [];
   let auditLog = [];
   let retiros = [];
+  let retiroNombreCursoMap = {};
   let retiroAsistencias = [];
   let retiroInspLog = [];
   let retiroAccessKey = 'INCOSAF';
@@ -2487,6 +2491,7 @@
       asisRosterEventos = snap.docs.map(d=>({ id:d.id, ...d.data() }));
       asisActualizarCursosDisponibles();
       if(asisAdminUnlocked) asisPoblarSelectsAdmin();
+      retiroDatalistBuild();
     }, err=>console.error(err));
   }
   function watchAsisCursosDesbloqueados(){
@@ -3648,7 +3653,7 @@
     btn.addEventListener('click', ()=>{
       document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
-      ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento','asis-importar','asis-clave'].forEach(key=>{
+      ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento','asis-clave'].forEach(key=>{
         const el = document.getElementById('sub-'+key);
         if(el) el.style.display = (key===btn.dataset.subtab) ? '' : 'none';
       });
@@ -3704,6 +3709,7 @@
   asisInitSelectors();
   asisPoblarUsuarios();
   asisActualizarCursosDisponibles();
+  retiroDatalistBuild();
 
   // ---------- Tabs ----------
   document.querySelectorAll('nav.tabs button').forEach(btn=>{
@@ -4320,6 +4326,51 @@
     }
   }
 
+  // ---------- Retiro de estudiantes: autocompletado desde la base de matrícula ----------
+  // Reutiliza la misma base de datos de alumnos (ASIS_ROSTER + altas/bajas en
+  // Firestore) que alimenta los cursos de Asistencia, para no duplicar datos.
+  function retiroCursoTextoAAsis(texto){
+    const m = (texto||'').trim().match(/^(\d)\s*°?\s*(?:medio\s*)?([A-Za-zÁÉÍÓÚÑáéíóúñ]+)\s*$/i);
+    if(!m) return null;
+    const curso = m[1]+'°'+m[2].toUpperCase();
+    return ASIS_CURSOS.includes(curso) ? curso : null;
+  }
+
+  function asisCursoATextoRetiro(curso){
+    const m = curso.match(/^(\d)°(.+)$/);
+    if(!m) return curso;
+    return m[1]+'° Medio '+m[2];
+  }
+
+  function retiroDatalistBuild(){
+    const datalist = document.getElementById('ret-alumno-list');
+    const cursoInput = document.getElementById('ret-curso');
+    if(!datalist || !cursoInput) return;
+    const roster = asisGetRoster();
+    const cursoAsis = retiroCursoTextoAAsis(cursoInput.value);
+    retiroNombreCursoMap = {};
+    const nombres = [];
+    (cursoAsis ? [cursoAsis] : ASIS_CURSOS).forEach(c=>{
+      (roster[c]||[]).forEach(n=>{
+        retiroNombreCursoMap[n] = c;
+        nombres.push(n);
+      });
+    });
+    datalist.innerHTML = nombres.map(n=>`<option value="${escapeHtml(n)}">`).join('');
+  }
+
+  document.getElementById('ret-curso').addEventListener('input', retiroDatalistBuild);
+  document.getElementById('ret-alumno').addEventListener('input', ()=>{
+    const alumnoInput = document.getElementById('ret-alumno');
+    const cursoInput = document.getElementById('ret-curso');
+    const nombre = alumnoInput.value.trim().toUpperCase();
+    const cursoDelAlumno = retiroNombreCursoMap[nombre];
+    if(cursoDelAlumno && !retiroCursoTextoAAsis(cursoInput.value)){
+      cursoInput.value = asisCursoATextoRetiro(cursoDelAlumno);
+      retiroDatalistBuild();
+    }
+  });
+
   // ---------- Retiro de estudiantes: historial general ----------
   function renderRetiroHistorial(){
     const body = document.getElementById('retiroHistBody');
@@ -4853,7 +4904,7 @@
     btn.addEventListener('click', ()=>{
       document.querySelectorAll('#panel-retiro .subtab-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
-      ['retiro-nuevo','retiro-historial','retiro-stats'].forEach(key=>{
+      ['retiro-nuevo','retiro-historial','retiro-stats','retiro-importar'].forEach(key=>{
         document.getElementById('sub-'+key).style.display = (key===btn.dataset.subtab) ? '' : 'none';
       });
       if(btn.dataset.subtab==='retiro-historial') renderRetiroHistorial();
@@ -5723,16 +5774,17 @@
     document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>{
       b.classList.toggle('active', b.dataset.subtab===key);
     });
-    ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento','asis-importar','asis-clave'].forEach(k=>{
+    ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento','asis-clave'].forEach(k=>{
       const el = document.getElementById('sub-'+k);
       if(el) el.style.display = (k===key) ? '' : 'none';
     });
   }
 
-  function activarModoParadocente(nombre){
+  function activarModoParadocente(nombre, tabsExtra){
     modoParadocenteActivo = true;
+    const tabsPermitidos = ['asistencia'].concat(tabsExtra || []);
     document.querySelectorAll('nav.tabs button').forEach(b=>{
-      b.style.display = (b.dataset.tab === 'asistencia') ? '' : 'none';
+      b.style.display = tabsPermitidos.includes(b.dataset.tab) ? '' : 'none';
     });
     document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
     document.getElementById('panel-asistencia').classList.add('active');
@@ -5868,7 +5920,7 @@
         if(paradocente){
           unlockApp(paradocente.nombre);
           desactivarModoDirector();
-          activarModoParadocente(paradocente.nombre);
+          activarModoParadocente(paradocente.nombre, paradocente.tabsExtra);
         }else if(director){
           unlockApp(director.nombre);
           desactivarModoParadocente();
