@@ -5966,37 +5966,62 @@
   logoutBtn.addEventListener('click', ()=>{ signOut(auth); });
 
   // ---------- Arranque ----------
+  // Cada rol solo necesita las colecciones de Firestore de las pestañas que
+  // realmente puede ver. Antes se activaban las 16 escuchas en tiempo real
+  // para todos (incluso antes de iniciar sesión), lo que gastaba lecturas de
+  // Firestore de más para paradocentes/dirección, que solo usan una parte
+  // pequeña del sistema. Ahora cada grupo se activa solo cuando el rol que
+  // inició sesión lo necesita (y una vez activo, queda activo para el resto
+  // de esa pestaña del navegador: nunca se "desactiva" nada ya cargado).
+  const COL_GROUPS = {
+    suspensiones: [watchRecords],
+    auditoria: [watchAuditLog],
+    retiro: [watchRetiros, watchRetiroAsistencias, watchRetiroConfig, watchRetiroInspLog],
+    atencion: [watchAtenciones, watchAtencionConfig],
+    cartas: [watchCartas, watchCierresCartas],
+    asistencia: [watchAsisRegistros, watchAsisRosterEventos, watchAsisCursosDesbloqueados, watchAsisConfig, watchAsisAniosCerrados, watchAsisRevisados],
+  };
+  const TAB_GRUPOS = {
+    registro: ['suspensiones'], listado: ['suspensiones'], alumno: ['suspensiones'],
+    curso: ['suspensiones'], establecimiento: ['suspensiones'], citacion: ['suspensiones'],
+    retiro: ['retiro','asistencia'], // el autocompletado de alumno usa la nómina de Asistencia
+    atencion: ['atencion','asistencia'], // idem
+    cartas: ['cartas'],
+    auditoria: ['auditoria'],
+    asistencia: ['asistencia'],
+  };
+  function gruposParaTabs(tabs){
+    const set = new Set();
+    tabs.forEach(t=>{ (TAB_GRUPOS[t]||[]).forEach(g=>set.add(g)); });
+    return Array.from(set);
+  }
+  const activeWatchGroups = new Set();
+  function ensureWatchGroups(nombresGrupos){
+    nombresGrupos.forEach(g=>{
+      if(activeWatchGroups.has(g)) return;
+      activeWatchGroups.add(g);
+      (COL_GROUPS[g]||[]).forEach(fn=>fn());
+    });
+  }
+
   initFirebase().then(ready=>{
     if(!ready) return;
-    watchRecords();
-    watchAuditLog();
-    watchRetiros();
-    watchRetiroAsistencias();
-    watchRetiroConfig();
-    watchRetiroInspLog();
-    watchAtenciones();
-    watchAtencionConfig();
-    watchCartas();
-    watchCierresCartas();
-    watchAsisRegistros();
-    watchAsisRosterEventos();
-    watchAsisCursosDesbloqueados();
-    watchAsisConfig();
-    watchAsisAniosCerrados();
-    watchAsisRevisados();
     onAuthStateChanged(auth, user=>{
       if(user){
         const paradocente = PARADOCENTE_DIRECTORY.find(u=>u.email===user.email);
         const director = DIRECTOR_DIRECTORY.find(u=>u.email===user.email);
         if(paradocente){
+          ensureWatchGroups(gruposParaTabs(['asistencia'].concat(paradocente.tabsExtra || [])));
           unlockApp(paradocente.nombre);
           desactivarModoDirector();
           activarModoParadocente(paradocente.nombre, paradocente.tabsExtra);
         }else if(director){
+          ensureWatchGroups(gruposParaTabs(DIRECTOR_TABS_PERMITIDOS));
           unlockApp(director.nombre);
           desactivarModoParadocente();
           activarModoDirector(director.nombre);
         }else{
+          ensureWatchGroups(Object.keys(COL_GROUPS));
           unlockApp(nameForEmail(user.email));
           desactivarModoParadocente();
           desactivarModoDirector();
