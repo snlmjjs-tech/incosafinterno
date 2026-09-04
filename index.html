@@ -231,16 +231,19 @@
     min-width:230px; padding:6px; z-index:1000;
   }
   .tabs-dropdown-menu.open{display:flex;}
-  .tabs-dropdown-menu button{
-    color:var(--ink-soft);
+  /* Seleccionado por #id para ganar siempre a "nav.tabs button" /
+     "nav.tabs button:hover" (que están pensadas para el fondo azul oscuro
+     del menú superior, no para este menú de fondo blanco). */
+  #reportesMenu button{
+    color:var(--ink-soft) !important;
     text-align:left;
     white-space:normal;
     border-radius:6px;
     border-bottom:none;
   }
-  .tabs-dropdown-menu button:hover{color:var(--navy);background:rgba(14,14,92,.06);}
-  .tabs-dropdown-menu button.active{
-    color:var(--navy-deep);
+  #reportesMenu button:hover{color:var(--navy) !important;background:rgba(14,14,92,.06);}
+  #reportesMenu button.active{
+    color:var(--navy-deep) !important;
     background:rgba(242,193,24,.14);
     border-bottom:none;
   }
