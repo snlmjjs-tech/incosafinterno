@@ -219,6 +219,31 @@
     border-bottom-color:var(--gold);
     background:rgba(242,193,24,.07);
   }
+  .tabs-dropdown{position:relative;}
+  .tabs-dropdown-menu{
+    /* position:fixed (con top/left calculados por JS) para que el menú no
+       quede recortado por el overflow-x:auto de nav.tabs (necesario para
+       el scroll horizontal si aún así llegara a desbordar). */
+    position:fixed;
+    display:none; flex-direction:column; gap:2px;
+    background:#fff; border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:0 10px 28px rgba(14,14,92,.22);
+    min-width:230px; padding:6px; z-index:1000;
+  }
+  .tabs-dropdown-menu.open{display:flex;}
+  .tabs-dropdown-menu button{
+    color:var(--ink-soft);
+    text-align:left;
+    white-space:normal;
+    border-radius:6px;
+    border-bottom:none;
+  }
+  .tabs-dropdown-menu button:hover{color:var(--navy);background:rgba(14,14,92,.06);}
+  .tabs-dropdown-menu button.active{
+    color:var(--navy-deep);
+    background:rgba(242,193,24,.14);
+    border-bottom:none;
+  }
 
   main{
     max-width:1180px;
@@ -760,15 +785,20 @@
 <div class="navy-bar">
   <nav class="tabs">
     <button data-tab="registro" class="active">Registrar suspensión</button>
-    <button data-tab="listado">Listado general</button>
-    <button data-tab="alumno">Reporte por alumno</button>
-    <button data-tab="curso">Reporte por curso</button>
-    <button data-tab="establecimiento">Reporte establecimiento</button>
+    <div class="tabs-dropdown">
+      <button type="button" class="tabs-dropdown-toggle" id="reportesToggleBtn">Reportes ▾</button>
+      <div class="tabs-dropdown-menu" id="reportesMenu">
+        <button data-tab="listado">Listado general</button>
+        <button data-tab="alumno">Reporte por alumno</button>
+        <button data-tab="curso">Reporte por curso</button>
+        <button data-tab="establecimiento">Reporte establecimiento</button>
+        <button data-tab="auditoria">Auditoría</button>
+      </div>
+    </div>
     <button data-tab="citacion">Carta de citación</button>
     <button data-tab="retiro">Retiro de estudiantes</button>
     <button data-tab="atencion">Atención a la comunidad</button>
     <button data-tab="cartas">Compromiso y Condicionalidad</button>
-    <button data-tab="auditoria">Auditoría</button>
     <button data-tab="asistencia">Asistencia</button>
   </nav>
 </div>
@@ -3719,12 +3749,34 @@
   atDatalistBuild();
 
   // ---------- Tabs ----------
-  document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  // "Reportes" agrupa varias pestañas de reportes en un menú desplegable
+  // (como Firebase) para que la barra superior no se desborde con tantas
+  // pestañas. El botón del grupo no tiene data-tab propio (no abre ningún
+  // panel): solo despliega/oculta el menú con las pestañas reales de adentro.
+  const REPORTES_GRUPO = ['listado','alumno','curso','establecimiento','auditoria'];
+  const reportesToggleBtn = document.getElementById('reportesToggleBtn');
+  const reportesMenu = document.getElementById('reportesMenu');
+  reportesToggleBtn.addEventListener('click', ()=>{
+    const abriendo = !reportesMenu.classList.contains('open');
+    if(abriendo){
+      const rect = reportesToggleBtn.getBoundingClientRect();
+      reportesMenu.style.top = rect.bottom + 'px';
+      reportesMenu.style.left = rect.left + 'px';
+    }
+    reportesMenu.classList.toggle('open');
+  });
+  document.addEventListener('click', (e)=>{
+    if(!e.target.closest('.tabs-dropdown')) reportesMenu.classList.remove('open');
+  });
+
+  document.querySelectorAll('nav.tabs button[data-tab]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
       document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+      if(REPORTES_GRUPO.includes(btn.dataset.tab)) reportesToggleBtn.classList.add('active');
+      reportesMenu.classList.remove('open');
     });
   });
 
@@ -5920,6 +5972,10 @@
     document.getElementById('panel-establecimiento').classList.add('active');
     document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
     document.querySelector('nav.tabs button[data-tab="establecimiento"]').classList.add('active');
+    // Establecimiento y Auditoría viven dentro del menú "Reportes": hay que
+    // mostrar el botón del grupo aparte, ya que no tiene data-tab propio.
+    reportesToggleBtn.style.display = '';
+    reportesToggleBtn.classList.add('active');
 
     document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>{
       b.style.display = ASIS_SUBTABS_DIRECTOR.includes(b.dataset.subtab) ? '' : 'none';
