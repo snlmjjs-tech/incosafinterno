@@ -314,7 +314,7 @@
     padding-top:16px;
     border-top:1px solid var(--line);
   }
-  button.btn{
+  button.btn, a.btn{
     appearance:none;
     border:none;
     border-radius:7px;
@@ -324,8 +324,10 @@
     font-size:13.5px;
     cursor:pointer;
     transition:transform .1s, box-shadow .15s, background .15s;
+    display:inline-block;
+    text-decoration:none;
   }
-  button.btn:active{transform:translateY(1px);}
+  button.btn:active, a.btn:active{transform:translateY(1px);}
   .btn-primary{
     background:linear-gradient(135deg,var(--navy-light),var(--navy));
     color:#fff;
@@ -749,6 +751,7 @@
     <div class="brand-session no-print">
       <select id="anioSelect" class="year-select" title="Año escolar activo"></select>
       <span class="session-user" id="sessionUserLabel"></span>
+      <a class="btn btn-ghost btn-sm" href="https://snlmjjs-tech.github.io/inspectorialibrodigital/" target="_blank" rel="noopener">Libro digital</a>
       <button class="btn btn-ghost btn-sm" id="logoutBtn" type="button">Cerrar sesión</button>
     </div>
   </div>
