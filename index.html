@@ -247,6 +247,20 @@
     background:rgba(242,193,24,.14);
     border-bottom:none;
   }
+  /* Menú "Más" de las subpestañas de Asistencia: los botones ya usan
+     .subtab-btn (mismos colores correctos), solo se ajusta el layout para
+     que se vean como una lista vertical en vez de píldoras sueltas. */
+  #asisMasMenu{align-items:stretch;}
+  #asisMasMenu button{
+    width:100%;
+    text-align:left;
+    white-space:normal;
+    border:none;
+    border-radius:6px;
+    background:transparent;
+  }
+  #asisMasMenu button:hover{background:rgba(14,14,92,.06);}
+  #asisMasMenu button.active{border-radius:6px;}
 
   main{
     max-width:1180px;
@@ -622,7 +636,11 @@
     margin-bottom:18px;
     flex-wrap:wrap;
   }
-  .subtab-btn{
+  /* .subtab-btn-look: mismo aspecto que .subtab-btn pero SIN la clase
+     .subtab-btn, para el botón "Más" — así no lo confunde el código que
+     busca ".subtab-btn.active" para saber cuál subvista redibujar (ese
+     botón no representa ninguna subvista propia, solo abre el menú). */
+  .subtab-btn, .subtab-btn-look{
     appearance:none;
     border:1px solid var(--line);
     background:#fff;
@@ -635,8 +653,8 @@
     cursor:pointer;
     transition:background .15s, color .15s, border-color .15s;
   }
-  .subtab-btn:hover{border-color:var(--gold-deep);color:var(--navy);}
-  .subtab-btn.active{
+  .subtab-btn:hover, .subtab-btn-look:hover{border-color:var(--gold-deep);color:var(--navy);}
+  .subtab-btn.active, .subtab-btn-look.active{
     background:var(--navy);
     border-color:var(--navy);
     color:var(--gold);
@@ -1657,11 +1675,16 @@
 
     <div class="subtabs no-print">
       <button class="subtab-btn active" data-subtab="asis-registrar">Registrar asistencia</button>
-      <button class="subtab-btn" data-subtab="asis-panel">Panel de control</button>
       <button class="subtab-btn" data-subtab="asis-informe">Informe diario</button>
-      <button class="subtab-btn" data-subtab="asis-general">Informe general</button>
-      <button class="subtab-btn" data-subtab="asis-admin">Administración</button>
-      <button class="subtab-btn" data-subtab="asis-seguimiento">Seguimiento</button>
+      <div class="tabs-dropdown">
+        <button type="button" class="subtab-btn-look tabs-dropdown-toggle" id="asisMasToggleBtn">Más ▾</button>
+        <div class="tabs-dropdown-menu" id="asisMasMenu">
+          <button class="subtab-btn" data-subtab="asis-panel">Panel de control</button>
+          <button class="subtab-btn" data-subtab="asis-general">Informe general</button>
+          <button class="subtab-btn" data-subtab="asis-admin">Administración</button>
+          <button class="subtab-btn" data-subtab="asis-seguimiento">Seguimiento</button>
+        </div>
+      </div>
       <button class="subtab-btn" data-subtab="asis-clave">Cambiar clave</button>
     </div>
 
@@ -3688,7 +3711,14 @@
   document.getElementById('asis-cierre-anual-btn').addEventListener('click', asisSetCierreAnual);
   document.getElementById('asis-generar-pdf-btn').addEventListener('click', asisGenerarPDF);
 
-  document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(btn=>{
+  // "Más" agrupa las subpestañas que solo usa el personal de acceso
+  // completo (Panel de control, Informe general, Administración,
+  // Seguimiento); Registrar asistencia, Informe diario y Cambiar clave
+  // — las que también usan paradocentes/dirección — quedan directas.
+  const ASIS_MAS_GRUPO = ['asis-panel','asis-general','asis-admin','asis-seguimiento'];
+  const { toggleBtn: asisMasToggleBtn, menu: asisMasMenu } = initTabsDropdown('asisMasToggleBtn','asisMasMenu');
+
+  document.querySelectorAll('#panel-asistencia .subtab-btn[data-subtab]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
@@ -3701,6 +3731,8 @@
       if(btn.dataset.subtab==='asis-general') asisRenderGeneral();
       if(btn.dataset.subtab==='asis-admin') asisInitAdmin();
       if(btn.dataset.subtab==='asis-seguimiento') asisRenderSeguimiento();
+      asisMasToggleBtn.classList.toggle('active', ASIS_MAS_GRUPO.includes(btn.dataset.subtab));
+      asisMasMenu.classList.remove('open');
     });
   });
 
@@ -3756,21 +3788,31 @@
   // (como Firebase) para que la barra superior no se desborde con tantas
   // pestañas. El botón del grupo no tiene data-tab propio (no abre ningún
   // panel): solo despliega/oculta el menú con las pestañas reales de adentro.
-  const REPORTES_GRUPO = ['listado','alumno','curso','establecimiento','auditoria'];
-  const reportesToggleBtn = document.getElementById('reportesToggleBtn');
-  const reportesMenu = document.getElementById('reportesMenu');
-  reportesToggleBtn.addEventListener('click', ()=>{
-    const abriendo = !reportesMenu.classList.contains('open');
-    if(abriendo){
-      const rect = reportesToggleBtn.getBoundingClientRect();
-      reportesMenu.style.top = rect.bottom + 'px';
-      reportesMenu.style.left = rect.left + 'px';
-    }
-    reportesMenu.classList.toggle('open');
-  });
+  // initTabsDropdown() conecta cualquier par botón+menú de este estilo:
+  // se reutiliza para "Reportes" (menú superior) y "Más" (subpestañas de
+  // Asistencia). El menú usa position:fixed con top/left calculados aquí
+  // para no quedar recortado por el overflow-x de su barra contenedora.
+  function initTabsDropdown(toggleId, menuId){
+    const toggleBtn = document.getElementById(toggleId);
+    const menu = document.getElementById(menuId);
+    toggleBtn.addEventListener('click', ()=>{
+      const abriendo = !menu.classList.contains('open');
+      if(abriendo){
+        const rect = toggleBtn.getBoundingClientRect();
+        menu.style.top = rect.bottom + 'px';
+        menu.style.left = rect.left + 'px';
+      }
+      menu.classList.toggle('open');
+    });
+    return { toggleBtn, menu };
+  }
   document.addEventListener('click', (e)=>{
-    if(!e.target.closest('.tabs-dropdown')) reportesMenu.classList.remove('open');
+    if(e.target.closest('.tabs-dropdown')) return;
+    document.querySelectorAll('.tabs-dropdown-menu.open').forEach(m=>m.classList.remove('open'));
   });
+
+  const REPORTES_GRUPO = ['listado','alumno','curso','establecimiento','auditoria'];
+  const { toggleBtn: reportesToggleBtn, menu: reportesMenu } = initTabsDropdown('reportesToggleBtn','reportesMenu');
 
   document.querySelectorAll('nav.tabs button[data-tab]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -5903,6 +5945,7 @@
     document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>{
       b.classList.toggle('active', b.dataset.subtab===key);
     });
+    asisMasToggleBtn.classList.toggle('active', ASIS_MAS_GRUPO.includes(key));
     ['asis-registrar','asis-panel','asis-informe','asis-general','asis-admin','asis-seguimiento','asis-clave'].forEach(k=>{
       const el = document.getElementById('sub-'+k);
       if(el) el.style.display = (k===key) ? '' : 'none';
@@ -5922,6 +5965,9 @@
     document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>{
       b.style.display = ASIS_SUBTABS_PARADOCENTE.includes(b.dataset.subtab) ? '' : 'none';
     });
+    // El botón "Más" no tiene data-subtab propio (no es .subtab-btn): se
+    // oculta a mano, ya que ninguna de sus opciones aplica a paradocentes.
+    asisMasToggleBtn.style.display = ASIS_MAS_GRUPO.some(k=>ASIS_SUBTABS_PARADOCENTE.includes(k)) ? '' : 'none';
     asisMostrarSubvista('asis-registrar');
 
     const sel = document.getElementById('asis-registro-usuario');
@@ -5939,6 +5985,7 @@
     modoParadocenteActivo = false;
     document.querySelectorAll('nav.tabs button').forEach(b=>{ b.style.display = ''; });
     document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>{ b.style.display = ''; });
+    asisMasToggleBtn.style.display = '';
     asisMostrarSubvista('asis-registrar');
 
     const sel = document.getElementById('asis-registro-usuario');
@@ -5983,6 +6030,7 @@
     document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>{
       b.style.display = ASIS_SUBTABS_DIRECTOR.includes(b.dataset.subtab) ? '' : 'none';
     });
+    asisMasToggleBtn.style.display = ASIS_MAS_GRUPO.some(k=>ASIS_SUBTABS_DIRECTOR.includes(k)) ? '' : 'none';
     asisMostrarSubvista('asis-informe');
     asisRenderInformeDiario();
   }
@@ -5992,6 +6040,7 @@
     modoDirectorActivo = false;
     document.querySelectorAll('nav.tabs button').forEach(b=>{ b.style.display = ''; });
     document.querySelectorAll('#panel-asistencia .subtab-btn').forEach(b=>{ b.style.display = ''; });
+    asisMasToggleBtn.style.display = '';
     asisMostrarSubvista('asis-registrar');
 
     document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
