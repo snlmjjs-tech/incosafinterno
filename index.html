@@ -5768,8 +5768,9 @@
     // ============ D. NATURALEZA Y CONSECUENCIA DEL ACCIDENTE (recuadro con franja lateral) ============
     // dTop deja espacio suficiente arriba del texto del título para que el
     // casillero "CODIGO / S S / ESTABLEC." quede DENTRO del recuadro (no
-    // asomado por encima de su borde superior, como en el original).
-    const dTop = y - 6;
+    // asomado por encima de su borde superior, como en el original), sin
+    // quitarle aire a "ESTABLECIMIENTO ASISTENCIAL" (que va justo debajo).
+    const dTop = y - 4.2;
     const sidebarW = 6.5;
     const bodyL = L + sidebarW;
 
