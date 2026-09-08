@@ -5505,106 +5505,294 @@
   });
 
   // ---------- Accidente escolar: PDF de la declaración ----------
+  // Réplica del formulario oficial "Declaración Individual de Accidente
+  // Escolar" (Gobierno de Chile / Seguro Escolar) — misma estructura y
+  // campos que el formulario en papel, sin membrete ni logo del colegio.
+  const ACC_DIA_CODE = {Lunes:1,Martes:2,'Miércoles':3,Jueves:4,Viernes:5,'Sábado':6,Domingo:7};
+  const ACC_TIPO_CODE = {Trayecto:1, Escuela:2};
+  const ACC_SEXO_CODE = {M:1, F:2};
+  const ACC_SINO_CODE = {'Sí':1, 'No':2};
+  const ACC_INCAP_CODE = {Leve:1, Temporal:2, 'Invalidez parcial':3, 'Invalidez total':4, 'Gran invalidez':5, Muerte:6};
+  const ACC_CIERRE_CODE = {'Alta médica':1, Invalidez:2, 'Abandono de tratamiento':3, Muerte:4};
+
   function buildAccidentePDF(rec){
     const pdf = new jsPDF({ unit:'mm', format:'letter' });
     const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const marginL = 15, marginR = pageW - 15;
-    const crest = getCrestDataUrl();
-    if(crest){ try{ pdf.addImage(crest, 'PNG', marginL, 10, 16, 22); }catch(e){} }
+    const L = 14, R = pageW - 14;
+    const W = R - L;
+    let y = 13;
+    const nombreCompleto = [rec.apellidoPaterno, rec.apellidoMaterno, rec.nombres].filter(Boolean).join(' ') || rec.nombreAlumno || '';
 
-    pdf.setFont('helvetica','bold'); pdf.setFontSize(13);
-    pdf.text('I. Comercial Alberto Valenzuela Llanos', pageW/2, 17, { align:'center' });
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(10);
-    pdf.text('San Fernando', pageW/2, 23, { align:'center' });
-    pdf.setFont('helvetica','bold'); pdf.setFontSize(13);
-    pdf.text('DECLARACIÓN INDIVIDUAL DE ACCIDENTE ESCOLAR', pageW/2, 34, { align:'center' });
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(10.5);
-    pdf.text(`N° ${String(rec.folio).padStart(5,'0')} — Año ${rec.anio}`, pageW/2, 40, { align:'center' });
-
-    let y = 50;
-    const nombreCompleto = [rec.apellidoPaterno, rec.apellidoMaterno, rec.nombres].filter(Boolean).join(' ') || rec.nombreAlumno || '—';
-
-    function seccion(titulo){
-      pdf.setFillColor(14,14,92);
-      pdf.rect(marginL, y, marginR-marginL, 6, 'F');
-      pdf.setTextColor(255,255,255);
-      pdf.setFont('helvetica','bold'); pdf.setFontSize(9.5);
-      pdf.text(titulo, marginL+2, y+4.3);
-      pdf.setTextColor(0,0,0);
-      y += 10;
-    }
-    function filas(pares){
-      pdf.setFontSize(9);
-      const colW = (marginR-marginL)/2;
-      for(let i=0;i<pares.length;i+=2){
-        const [l1,v1] = pares[i];
-        pdf.setFont('helvetica','bold'); pdf.text(l1+':', marginL, y);
-        pdf.setFont('helvetica','normal'); pdf.text(String(v1||'—'), marginL+38, y);
-        if(pares[i+1] && pares[i+1][0]){
-          const [l2,v2] = pares[i+1];
-          pdf.setFont('helvetica','bold'); pdf.text(l2+':', marginL+colW, y);
-          pdf.setFont('helvetica','normal'); pdf.text(String(v2||'—'), marginL+colW+38, y);
-        }
-        y += 6;
+    function estrella(cx, cy, r){
+      const pts = [];
+      for(let i=0;i<10;i++){
+        const ang = -Math.PI/2 + i*Math.PI/5;
+        const rad = i%2===0 ? r : r*0.42;
+        pts.push([cx+rad*Math.cos(ang), cy+rad*Math.sin(ang)]);
       }
-      y += 2;
+      const segs = [];
+      for(let i=1;i<pts.length;i++) segs.push([pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1]]);
+      segs.push([pts[0][0]-pts[pts.length-1][0], pts[0][1]-pts[pts.length-1][1]]);
+      pdf.setFillColor(255,255,255);
+      pdf.lines(segs, pts[0][0], pts[0][1], [1,1], 'F', true);
+    }
+    // Campo con línea para escribir arriba y la etiqueta debajo (igual al formulario en papel).
+    function linea(x, yy, w, label, value){
+      if(value){
+        pdf.setFont('helvetica','normal'); pdf.setFontSize(8);
+        pdf.text(String(value), x+1, yy-1);
+      }
+      pdf.setLineWidth(0.25);
+      pdf.line(x, yy, x+w, yy);
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(6);
+      pdf.text(label, x+w/2, yy+3.1, { align:'center' });
+    }
+    // Casillero cuadrado con un valor centrado (para los códigos numéricos: M=1/F=2, etc.)
+    function caja(x, yy, w, h, value, fontSize){
+      pdf.setLineWidth(0.25);
+      pdf.rect(x, yy, w, h);
+      if(value!==undefined && value!==null && value!==''){
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(fontSize||8);
+        pdf.text(String(value), x+w/2, yy+h/2+ (fontSize||8)/3.4, { align:'center' });
+      }
+    }
+    // Lista de opciones con código numérico (ej. "LUNES = 1"); marca con ">" la
+    // seleccionada, igual al criterio del formulario en papel de anotar el código.
+    // Devuelve el Y final (para saber cuánto espacio ocupó la lista más larga).
+    function etiquetaCodigos(x, yy, opciones, seleccion){
+      pdf.setFontSize(6.2);
+      opciones.forEach(([texto, codigo], i)=>{
+        const marcada = codigo!=='' && seleccion===codigo;
+        pdf.setFont('helvetica', marcada ? 'bold' : 'normal');
+        pdf.text((marcada?'> ':'   ')+texto+(codigo!==''?(' = '+codigo):''), x, yy+i*3.3);
+      });
+      return yy + opciones.length*3.3;
     }
 
-    seccion('A. INDIVIDUALIZACIÓN DEL ESTABLECIMIENTO Y DEL ALUMNO(A)');
-    filas([
-      ['Establecimiento', rec.establecimiento], ['Ciudad', rec.ciudad],
-      ['Comuna', rec.comuna], ['Curso', rec.curso],
-      ['Horario', rec.horario], ['Fecha de registro', rec.fechaRegistro?fmtDate(rec.fechaRegistro):'—'],
-      ['Alumno(a)', nombreCompleto], ['RUN', rec.run],
-      ['Sexo', rec.sexo==='M'?'Masculino':(rec.sexo==='F'?'Femenino':'—')], ['Fecha de nacimiento', rec.fechaNacimiento?fmtDate(rec.fechaNacimiento):'—'],
-      ['Edad', rec.edad],
-    ]);
-    pdf.setFont('helvetica','bold'); pdf.setFontSize(8.5);
-    pdf.text('Residencia habitual:', marginL, y); y += 5;
-    filas([
-      ['Calle', rec.residCalle], ['Número', rec.residNumero],
-      ['Población/Villa', rec.residPoblacion], ['Comuna', rec.residComuna],
-      ['Ciudad', rec.residCiudad],
-    ]);
+    // ---- Banda "GOBIERNO DE CHILE" ----
+    const bannerH = 9;
+    const bannerSplit = L + W*0.6;
+    pdf.setFillColor(21,58,120);
+    pdf.rect(L, y, bannerSplit-L, bannerH, 'F');
+    pdf.setFillColor(200,32,44);
+    pdf.rect(bannerSplit, y, R-bannerSplit, bannerH, 'F');
+    estrella(bannerSplit, y+bannerH/2, 3);
+    pdf.setTextColor(255,255,255);
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(10);
+    pdf.text('GOBIERNO DE CHILE', L+5, y+bannerH/2+1.2);
+    pdf.setFontSize(8.5);
+    pdf.text('TRABAJANDO PARA USTED', bannerSplit+6, y+bannerH/2+1.2);
+    pdf.setTextColor(0,0,0);
+    y += bannerH + 8;
 
-    seccion('C. INFORME SOBRE EL ACCIDENTE');
-    filas([
-      ['Fecha del accidente', rec.fechaAccidente?fmtDate(rec.fechaAccidente):'—'], ['Hora', rec.horaAccidente],
-      ['Día', rec.diaSemana], ['Tipo de accidente', rec.tipo==='Trayecto'?'De trayecto':'En la escuela'],
-    ]);
-    if(rec.tipo==='Trayecto'){
-      filas([
-        ['Testigo a)', rec.testigo1Nombre], ['C. de identidad', rec.testigo1Cedula],
-        ['Testigo b)', rec.testigo2Nombre], ['C. de identidad', rec.testigo2Cedula],
-      ]);
-    }
+    // ---- Título + N° ----
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(13);
+    pdf.text('DECLARACION INDIVIDUAL DE ACCIDENTE ESCOLAR', L, y);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(10.5);
+    pdf.text('N°', R-26, y);
+    caja(R-19, y-4.3, 19, 5.8, String(rec.folio||0).padStart(5,'0'), 8.5);
+    y += 6.5;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(7);
+    pdf.text('Antes de registrar los datos lea las instrucciones al reverso', L, y);
+    y += 7;
+
+    // ============ A. INDIVIDUALIZACIÓN DEL ESTABLECIMIENTO ============
     pdf.setFont('helvetica','bold'); pdf.setFontSize(9);
-    pdf.text('Circunstancia del accidente:', marginL, y); y += 5;
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(9);
-    const circLines = pdf.splitTextToSize(rec.circunstancia || 'Sin detalle registrado.', marginR-marginL);
-    pdf.text(circLines, marginL, y);
-    y += 5*circLines.length + 3;
-    filas([['Rector(a) o representante (firma)', rec.rector]]);
+    pdf.text('A. INDIVIDUALIZACION DEL ESTABLECIMIENTO', L, y);
+    y += 7;
 
-    seccion('D. NATURALEZA Y CONSECUENCIA DEL ACCIDENTE (establecimiento asistencial)');
-    filas([
-      ['Establecimiento asistencial', rec.estabAsistencial], ['Diagnóstico médico', rec.diagnostico],
-      ['Parte del cuerpo afectada', rec.parteCuerpo], ['Hospitalización', rec.hospitalizacion],
-      ['Total días hospitalización', rec.diasHosp], ['Incapacidad', rec.incapacidad],
-      ['Total días incapacidad', rec.diasIncap], ['Tipo de incapacidad', rec.tipoIncapacidad],
-      ['Causa de cierre del caso', rec.causaCierre], ['Fecha de cierre del caso', rec.fechaCierre?fmtDate(rec.fechaCierre):'—'],
-      ['Firma del estadístico', rec.estadistico],
-    ]);
+    let colW = (W-8)/3;
+    linea(L, y, colW, 'NOMBRE DEL ESTABLECIMIENTO', rec.establecimiento);
+    linea(L+colW+4, y, colW*0.5, 'CIUDAD', rec.ciudad);
+    linea(L+colW+4+colW*0.5+4, y, colW*0.5-8, 'COMUNA', rec.comuna);
+    y += 9.5;
 
-    pdf.setFontSize(8);
+    linea(L, y, 52, 'CURSO', rec.curso);
+    linea(L+56, y, 52, 'HORARIO', rec.horario);
+    const frX = L+118;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(6.2);
+    pdf.text('FECHA REGISTRO de los DATOS', frX, y-7);
+    const fReg = rec.fechaRegistro || '';
+    caja(frX, y-5.2, 13, 5.6, fReg?fReg.slice(8,10):'', 7.5);
+    caja(frX+13, y-5.2, 13, 5.6, fReg?fReg.slice(5,7):'', 7.5);
+    caja(frX+26, y-5.2, 17, 5.6, fReg?fReg.slice(0,4):'', 7.5);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(5.6);
+    pdf.text('DÍA', frX+6.5, y+1.6, { align:'center' });
+    pdf.text('MES', frX+19.5, y+1.6, { align:'center' });
+    pdf.text('AÑO', frX+34.5, y+1.6, { align:'center' });
+    y += 9.5;
+
+    linea(L, y, 90, 'RUN', rec.run);
+    y += 12.5;
+
+    colW = (W-8)/3;
+    linea(L, y, colW, 'APELLIDO PATERNO', rec.apellidoPaterno);
+    linea(L+colW+4, y, colW, 'APELLIDO MATERNO', rec.apellidoMaterno);
+    linea(L+2*(colW+4), y, colW-16, 'NOMBRES', rec.nombres);
+    const sexoX = R-16;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(5.8);
+    pdf.text('SEXO', sexoX-1, y-8);
+    etiquetaCodigos(sexoX-1, y-5.6, [['M',1],['F',2]], ACC_SEXO_CODE[rec.sexo]);
+    caja(sexoX+8, y-6.8, 6, 6, ACC_SEXO_CODE[rec.sexo]||'', 8);
+    y += 12.5;
+
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(6.2);
+    pdf.text('FECHA NACIMIENTO', L+2, y-6.8);
+    const fNac = rec.fechaNacimiento || '';
+    caja(L, y-5, 11, 5.6, fNac?fNac.slice(8,10):'', 7);
+    caja(L+11, y-5, 11, 5.6, fNac?fNac.slice(5,7):'', 7);
+    caja(L+22, y-5, 14, 5.6, fNac?fNac.slice(0,4):'', 7);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(5.2);
+    pdf.text('DÍA', L+5.5, y+1.4, { align:'center' });
+    pdf.text('MES', L+16.5, y+1.4, { align:'center' });
+    pdf.text('AÑO', L+29, y+1.4, { align:'center' });
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(6.2);
+    pdf.text('EDAD', L+44, y-6.8);
+    caja(L+42, y-5, 10, 5.6, rec.edad, 7.5);
+    y += 9.5;
+
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(7.5);
+    pdf.text('RESIDENCIA HABITUAL:', L, y);
+    y += 7;
+    colW = (W-16)/5;
+    linea(L, y, colW, 'CALLE', rec.residCalle);
+    linea(L+(colW+4), y, colW*0.7, 'NUMERO', rec.residNumero);
+    linea(L+2*(colW+4), y, colW, 'POBLACION/VILLA', rec.residPoblacion);
+    linea(L+3*(colW+4), y, colW, 'COMUNA', rec.residComuna);
+    linea(L+4*(colW+4), y, colW*0.7, 'CIUDAD', rec.residCiudad);
+    y += 12;
+
+    // ============ C. INFORME SOBRE EL ACCIDENTE ============
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(9);
+    pdf.text('C. INFORME SOBRE EL ACCIDENTE', L, y);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(6.2);
+    pdf.text('(FECHA, HORA Y DIA DE LA SEMANA EN QUE SE ACCIDENTO)', L+58, y);
+    y += 10;
+
+    const [hh, mm] = (rec.horaAccidente||'').split(':');
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(5.8);
+    pdf.text('HORA', L+2.5, y-7.5, { align:'center' });
+    pdf.text('MIN.', L+14.5, y-7.5, { align:'center' });
+    caja(L, y-6, 9, 6, hh||'', 7.5);
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(8); pdf.text(':', L+10, y-2.5);
+    caja(L+12, y-6, 9, 6, mm||'', 7.5);
+
+    const fAcc = rec.fechaAccidente || '';
+    const accX = L+30;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(5.8);
+    pdf.text('AÑO', accX+7, y-7.5, { align:'center' });
+    pdf.text('MES', accX+21, y-7.5, { align:'center' });
+    pdf.text('DIA', accX+34, y-7.5, { align:'center' });
+    caja(accX, y-6, 14, 6, fAcc?fAcc.slice(0,4):'', 7.5);
+    caja(accX+14, y-6, 13, 6, fAcc?fAcc.slice(5,7):'', 7.5);
+    caja(accX+27, y-6, 13, 6, fAcc?fAcc.slice(8,10):'', 7.5);
+
+    pdf.setLineWidth(0.3);
+    pdf.rect(L+108, y-7.5, W-108, 7);
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(7);
+    pdf.text('TESTIGOS: (EN CASO DE TRAYECTO)', L+108+(W-108)/2, y-3.5, { align:'center' });
+    y += 6.5;
+
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(6.2);
+    pdf.text('DIA ACCIDENTE', L, y);
+    pdf.text('ACCIDENTE:', L+26, y);
+    y += 3.6;
+    const yDiaListEnd = etiquetaCodigos(L, y, [['LUNES',1],['MARTES',2],['MIERCOLES',3],['JUEVES',4],['VIERNES',5],['SABADO',6],['DOMINGO',7]], ACC_DIA_CODE[rec.diaSemana]);
+    etiquetaCodigos(L+26, y, [['DE TRAYECTO',1],['EN LA ESCUELA',2]], ACC_TIPO_CODE[rec.tipo]);
+
+    if(rec.tipo==='Trayecto'){
+      const tX = L+66;
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(6.5);
+      pdf.text('a)', tX, y+3);
+      linea(tX+5, y+4, 55, 'NOMBRE - APELLIDO', rec.testigo1Nombre);
+      linea(tX+63, y+4, 30, 'C. NAC. DE ID.', rec.testigo1Cedula);
+      pdf.text('b)', tX, y+15);
+      linea(tX+5, y+16, 55, 'NOMBRE - APELLIDO', rec.testigo2Nombre);
+      linea(tX+63, y+16, 30, 'C. NAC. DE ID.', rec.testigo2Cedula);
+    }
+    y = yDiaListEnd + 4;
+
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(7.5);
+    pdf.text('CIRCUNSTANCIA DEL ACCIDENTE (DESCRIBA COMO OCURRIO - CAUSAL)', L, y);
+    y += 5.5;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(8);
+    const circLines = pdf.splitTextToSize(rec.circunstancia || '', W-2).slice(0,3);
+    circLines.forEach(linea_=>{
+      pdf.text(linea_, L, y);
+      pdf.setLineWidth(0.2);
+      pdf.line(L, y+1.4, R, y+1.4);
+      y += 6;
+    });
+    for(let i=circLines.length;i<2;i++){
+      pdf.setLineWidth(0.2);
+      pdf.line(L, y+1.4, R, y+1.4);
+      y += 6;
+    }
+    y += 6;
+
+    linea(L, y, 90, '', '');
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(7.5);
+    if(rec.rector) pdf.text(rec.rector, L+1, y-1);
+    linea(R-70, y, 70, 'FIRMA Y TIMBRE — RECTOR O REPRESENTANTE', '');
+    y += 11;
+
+    // ============ D. NATURALEZA Y CONSECUENCIA DEL ACCIDENTE ============
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(9);
+    pdf.text('D. NATURALEZA Y CONSECUENCIA DEL ACCIDENTE', L, y);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(6.5);
+    pdf.text('(SOLO ESTABLECIMIENTO ASISTENCIAL, SI SE CONOCE)', L+88, y);
+    y += 8;
+
+    linea(L, y, W-2, 'ESTABLECIMIENTO ASISTENCIAL', rec.estabAsistencial);
+    y += 9.5;
+    linea(L, y, W-2, 'DIAGNOSTICO MEDICO', rec.diagnostico);
+    y += 16;
+
+    linea(L, y, 60, 'PARTE DEL CUERPO AFECTADA', rec.parteCuerpo);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(5.8);
+    pdf.text('HOSPITALIZACION', L+66, y-8.2);
+    etiquetaCodigos(L+66, y-5.7, [['SI',1],['NO',2]], ACC_SINO_CODE[rec.hospitalizacion]);
+    caja(L+84, y-7, 6, 5.6, ACC_SINO_CODE[rec.hospitalizacion]||'', 7.5);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(5.8);
+    pdf.text('TOTAL DIAS HOSP.', L+94, y-8.2);
+    caja(L+94, y-5.6, 13, 5.6, rec.diasHosp?String(rec.diasHosp):'', 7.5);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(5.8);
+    pdf.text('INCAPACIDAD', L+114, y-8.2);
+    etiquetaCodigos(L+114, y-5.7, [['SI',1],['NO',2]], ACC_SINO_CODE[rec.incapacidad]);
+    caja(L+130, y-7, 6, 5.6, ACC_SINO_CODE[rec.incapacidad]||'', 7.5);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(5.8);
+    pdf.text('TOTAL DIAS INCAP.', L+140, y-8.2);
+    caja(L+140, y-5.6, 13, 5.6, rec.diasIncap?String(rec.diasIncap):'', 7.5);
+    y += 9;
+
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(6.2);
+    pdf.text('TIPO DE INCAPACIDAD', L, y);
+    pdf.text('CAUSA DE CIERRE DEL CASO', L+55, y);
+    pdf.text('FECHA CIERRE DEL CASO', L+112, y);
+    y += 3.6;
+    const yIncapEnd = etiquetaCodigos(L, y, [['LEVE',1],['TEMPORAL',2],['INVALIDEZ PARCIAL',3],['INVALIDEZ TOTAL',4],['GRAN INVALIDEZ',5],['MUERTE',6]], ACC_INCAP_CODE[rec.tipoIncapacidad]);
+    etiquetaCodigos(L+55, y, [['ALTA MEDICA',1],['INVALIDEZ',2],['ABANDONO DE TRATAMIENTO',3],['MUERTE',4]], ACC_CIERRE_CODE[rec.causaCierre]);
+    const fCierre = rec.fechaCierre || '';
+    caja(L+112, y, 15, 5.6, fCierre?fCierre.slice(0,4):'', 7);
+    caja(L+127, y, 13, 5.6, fCierre?fCierre.slice(5,7):'', 7);
+    caja(L+140, y, 13, 5.6, fCierre?fCierre.slice(8,10):'', 7);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(5.2);
+    pdf.text('AÑO', L+119.5, y+7.8, { align:'center' });
+    pdf.text('MES', L+133.5, y+7.8, { align:'center' });
+    pdf.text('DIA', L+146.5, y+7.8, { align:'center' });
+    y = yIncapEnd + 5;
+
+    linea(R-70, y, 70, 'FIRMA DEL ESTADISTICO', rec.estadistico);
+    y += 10;
+
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(6.5);
     pdf.setTextColor(120,120,120);
-    pdf.text('Registrado por '+(rec.creadoPor||'—')+' — I. Comercial Alberto Valenzuela Llanos, San Fernando', marginL, pageH-10);
+    pdf.text('Alumno(a): '+(nombreCompleto||rec.nombreAlumno||'—')+' — Curso: '+(rec.curso||'—')+' — Registrado por '+(rec.creadoPor||'—'), L, y);
+    pdf.setTextColor(0,0,0);
 
-    const nombreArchivo = (nombreCompleto||'alumno').trim().replace(/\s+/g,'_').replace(/[^\p{L}\p{N}_]+/gu,'');
+    const nombreArchivo = (nombreCompleto||rec.nombreAlumno||'alumno').trim().replace(/\s+/g,'_').replace(/[^\p{L}\p{N}_]+/gu,'');
     pdf.save(`Accidente_${String(rec.folio).padStart(5,'0')}_${nombreArchivo}.pdf`);
   }
-
   // ---------- Atención a la comunidad: PDF del comprobante ----------
   function buildAtencionPDF(rec){
     const pdf = new jsPDF({ unit:'mm', format:'letter' });
