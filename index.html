@@ -5574,6 +5574,15 @@
     y += 6.5;
     pdf.setFont('helvetica','normal'); pdf.setFontSize(7);
     pdf.text('Antes de registrar los datos lea las instrucciones al reverso', L, y);
+
+    // Recuadro "FISCAL O MUNICIPAL=1 / PARTICULAR=2" (decorativo, arriba a la
+    // derecha, igual al formulario — esta intranet no distingue esa clasificación).
+    const fbW = 9, fbH = 12.5, fbX = R-fbW, fbY = y-9.2;
+    pdf.setLineWidth(0.25); pdf.rect(fbX, fbY, fbW, fbH);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(6.3);
+    pdf.text('FISCAL O', fbX-45, fbY+3.2);
+    pdf.text('MUNICIPAL      = 1', fbX-45, fbY+7);
+    pdf.text('PARTICULAR   = 2', fbX-45, fbY+11.6);
     y += 7;
 
     // ============ A. INDIVIDUALIZACIÓN DEL ESTABLECIMIENTO ============
@@ -5602,7 +5611,7 @@
     pdf.text('AÑO', frX+34.5, y+1.6, { align:'center' });
     y += 9.5;
 
-    linea(L, y, 90, 'RUN', rec.run);
+    linea(L, y, 60, 'RUN', rec.run);
     y += 12.5;
 
     colW = (W-8)/3;
@@ -5611,9 +5620,9 @@
     linea(L+2*(colW+4), y, colW-16, 'NOMBRES', rec.nombres);
     const sexoX = R-16;
     pdf.setFont('helvetica','normal'); pdf.setFontSize(5.8);
-    pdf.text('SEXO', sexoX-1, y-8);
-    etiquetaCodigos(sexoX-1, y-5.6, [['M',1],['F',2]], ACC_SEXO_CODE[rec.sexo]);
-    caja(sexoX+8, y-6.8, 6, 6, ACC_SEXO_CODE[rec.sexo]||'', 8);
+    pdf.text('SEXO', sexoX-1, y-9.5);
+    etiquetaCodigos(sexoX-1, y-7, [['M',1],['F',2]], ACC_SEXO_CODE[rec.sexo]);
+    caja(sexoX+8, y-8.3, 6, 8.6, ACC_SEXO_CODE[rec.sexo]||'', 8);
     y += 12.5;
 
     pdf.setFont('helvetica','normal'); pdf.setFontSize(6.2);
@@ -5634,12 +5643,20 @@
     pdf.setFont('helvetica','bold'); pdf.setFontSize(7.5);
     pdf.text('RESIDENCIA HABITUAL:', L, y);
     y += 7;
-    colW = (W-16)/5;
+    colW = (W-16-19)/5;
     linea(L, y, colW, 'CALLE', rec.residCalle);
     linea(L+(colW+4), y, colW*0.7, 'NUMERO', rec.residNumero);
     linea(L+2*(colW+4), y, colW, 'POBLACION/VILLA', rec.residPoblacion);
     linea(L+3*(colW+4), y, colW, 'COMUNA', rec.residComuna);
     linea(L+4*(colW+4), y, colW*0.7, 'CIUDAD', rec.residCiudad);
+    // "CODIF. COM." — casillero de codificación de comuna (decorativo, no se
+    // captura en el formulario digital, igual que en el original en papel).
+    const codifX = R-16;
+    caja(codifX, y-5.4, 5.3, 6.4, '', 7);
+    caja(codifX+5.3, y-5.4, 5.3, 6.4, '', 7);
+    caja(codifX+10.6, y-5.4, 5.4, 6.4, '', 7);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(5);
+    pdf.text('CODIF. COM.', codifX+8, y+2.4, { align:'center' });
     y += 12;
 
     // ============ C. INFORME SOBRE EL ACCIDENTE ============
@@ -5675,20 +5692,24 @@
 
     pdf.setFont('helvetica','bold'); pdf.setFontSize(6.2);
     pdf.text('DIA ACCIDENTE', L, y);
-    pdf.text('ACCIDENTE:', L+26, y);
+    pdf.text('ACCIDENTE:', L+34, y);
     y += 3.6;
     const yDiaListEnd = etiquetaCodigos(L, y, [['LUNES',1],['MARTES',2],['MIERCOLES',3],['JUEVES',4],['VIERNES',5],['SABADO',6],['DOMINGO',7]], ACC_DIA_CODE[rec.diaSemana]);
-    etiquetaCodigos(L+26, y, [['DE TRAYECTO',1],['EN LA ESCUELA',2]], ACC_TIPO_CODE[rec.tipo]);
+    // Casillero de respuesta para el día del accidente (igual al original: un
+    // solo recuadro donde se anota el código elegido de la lista).
+    caja(L+21, y+3.4, 8, 11, ACC_DIA_CODE[rec.diaSemana]||'', 9);
+    etiquetaCodigos(L+34, y, [['DE TRAYECTO',1],['EN LA ESCUELA',2]], ACC_TIPO_CODE[rec.tipo]);
+    caja(L+65, y+2, 8, 11, ACC_TIPO_CODE[rec.tipo]||'', 9);
 
     if(rec.tipo==='Trayecto'){
-      const tX = L+66;
+      const tX = L+80;
       pdf.setFont('helvetica','normal'); pdf.setFontSize(6.5);
       pdf.text('a)', tX, y+3);
-      linea(tX+5, y+4, 55, 'NOMBRE - APELLIDO', rec.testigo1Nombre);
-      linea(tX+63, y+4, 30, 'C. NAC. DE ID.', rec.testigo1Cedula);
+      linea(tX+5, y+4, 48, 'NOMBRE - APELLIDO', rec.testigo1Nombre);
+      linea(tX+56, y+4, 27, 'C. NAC. DE ID.', rec.testigo1Cedula);
       pdf.text('b)', tX, y+15);
-      linea(tX+5, y+16, 55, 'NOMBRE - APELLIDO', rec.testigo2Nombre);
-      linea(tX+63, y+16, 30, 'C. NAC. DE ID.', rec.testigo2Cedula);
+      linea(tX+5, y+16, 48, 'NOMBRE - APELLIDO', rec.testigo2Nombre);
+      linea(tX+56, y+16, 27, 'C. NAC. DE ID.', rec.testigo2Cedula);
     }
     y = yDiaListEnd + 4;
 
@@ -5710,17 +5731,35 @@
     }
     y += 6;
 
-    linea(L, y, 90, '', '');
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(7.5);
-    if(rec.rector) pdf.text(rec.rector, L+1, y-1);
-    linea(R-70, y, 70, 'FIRMA Y TIMBRE — RECTOR O REPRESENTANTE', '');
-    y += 11;
+    // Firma y timbre — Rector o representante (encabezado y pie estáticos,
+    // como en el original; el nombre capturado se escribe sobre la línea).
+    linea(R-70, y, 70, '', rec.rector);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(6.5);
+    pdf.text('FIRMA Y TIMBRE', R-70+35, y-6, { align:'center' });
+    pdf.text('RECTOR O REPRESENTANTE', R-70+35, y+6.2, { align:'center' });
+    y += 20;
 
     // ============ D. NATURALEZA Y CONSECUENCIA DEL ACCIDENTE ============
     pdf.setFont('helvetica','bold'); pdf.setFontSize(9);
     pdf.text('D. NATURALEZA Y CONSECUENCIA DEL ACCIDENTE', L, y);
     pdf.setFont('helvetica','normal'); pdf.setFontSize(6.5);
     pdf.text('(SOLO ESTABLECIMIENTO ASISTENCIAL, SI SE CONOCE)', L+88, y);
+
+    // "CODIGO  S S – ESTABLEC." — casillero administrativo decorativo, igual
+    // que en el original (no se captura, es de uso interno del Ministerio).
+    const codW = W*0.28, codX = R-codW;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(6);
+    pdf.text('CODIGO', codX, y-1.5);
+    caja(codX+15, y-6.6, 5, 5.6, '', 7);
+    caja(codX+20, y-6.6, 5, 5.6, '', 7);
+    pdf.text('S', codX+17.5, y-8, { align:'center' });
+    pdf.text('S', codX+22.5, y-8, { align:'center' });
+    pdf.setFont('helvetica','bold'); pdf.text('–', codX+27, y-1.5);
+    caja(codX+30, y-6.6, 6, 5.6, '', 7);
+    caja(codX+36, y-6.6, 6, 5.6, '', 7);
+    caja(codX+42, y-6.6, 6, 5.6, '', 7);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(6);
+    pdf.text('ESTABLEC.', codX+39, y-8, { align:'center' });
     y += 8;
 
     linea(L, y, W-2, 'ESTABLECIMIENTO ASISTENCIAL', rec.estabAsistencial);
@@ -5752,6 +5791,8 @@
     y += 3.6;
     const yIncapEnd = etiquetaCodigos(L, y, [['LEVE',1],['TEMPORAL',2],['INVALIDEZ PARCIAL',3],['INVALIDEZ TOTAL',4],['GRAN INVALIDEZ',5],['MUERTE',6]], ACC_INCAP_CODE[rec.tipoIncapacidad]);
     etiquetaCodigos(L+55, y, [['ALTA MEDICA',1],['INVALIDEZ',2],['ABANDONO DE TRATAMIENTO',3],['MUERTE',4]], ACC_CIERRE_CODE[rec.causaCierre]);
+    // Casillero de respuesta para la causa de cierre del caso (igual al original).
+    caja(L+98, y+3, 8, 10, ACC_CIERRE_CODE[rec.causaCierre]||'', 9);
     const fCierre = rec.fechaCierre || '';
     caja(L+112, y, 15, 5.6, fCierre?fCierre.slice(0,4):'', 7);
     caja(L+127, y, 13, 5.6, fCierre?fCierre.slice(5,7):'', 7);
