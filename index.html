@@ -5560,30 +5560,33 @@
       return yy + opciones.length*3.3;
     }
 
-    // ---- Banda "GOBIERNO DE CHILE" — imagen real (no recreada a mano) ----
-    const bannerH = W * (ACC_BANNER_H/ACC_BANNER_W);
-    try{ pdf.addImage(ACC_BANNER_DATA_URL, 'PNG', L, y, W, bannerH); }catch(e){}
-    y += bannerH + 8;
+    // ---- Banda "GOBIERNO DE CHILE" — imagen real, al ancho y alto que tiene
+    // en el formulario original (angosta y centrada, no todo el ancho) ----
+    const bannerW = W * 0.665;
+    const bannerH = bannerW * (ACC_BANNER_H/ACC_BANNER_W);
+    const bannerX = L + (W-bannerW)/2;
+    try{ pdf.addImage(ACC_BANNER_DATA_URL, 'PNG', bannerX, y, bannerW, bannerH); }catch(e){}
+    y += bannerH + 11;
 
-    // ---- Título + N° ----
-    pdf.setFont('helvetica','bold'); pdf.setFontSize(13);
-    pdf.text('DECLARACION INDIVIDUAL DE ACCIDENTE ESCOLAR', L, y);
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(10.5);
-    pdf.text('N°', R-26, y);
-    caja(R-19, y-4.3, 19, 5.8, String(rec.folio||0).padStart(5,'0'), 8.5);
+    // ---- Título + N° (el título arranca alineado con el borde de la banda) ----
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(12);
+    pdf.text('DECLARACION INDIVIDUAL DE ACCIDENTE ESCOLAR', bannerX, y);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(10);
+    pdf.text('N°', bannerX+bannerW+4, y);
+    caja(bannerX+bannerW+10, y-4, 16, 5.4, String(rec.folio||0).padStart(5,'0'), 8);
     y += 6.5;
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(7);
-    pdf.text('Antes de registrar los datos lea las instrucciones al reverso', L, y);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(6.8);
+    pdf.text('Antes de registrar los datos lea las instrucciones al reverso', bannerX, y);
 
     // Recuadro "FISCAL O MUNICIPAL=1 / PARTICULAR=2" (decorativo, arriba a la
     // derecha, igual al formulario — esta intranet no distingue esa clasificación).
-    const fbW = 9, fbH = 12.5, fbX = R-fbW, fbY = y-9.2;
+    const fbW = 8, fbH = 11, fbX = R-fbW, fbY = y-1.5;
     pdf.setLineWidth(0.25); pdf.rect(fbX, fbY, fbW, fbH);
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(6.3);
-    pdf.text('FISCAL O', fbX-45, fbY+3.2);
-    pdf.text('MUNICIPAL      = 1', fbX-45, fbY+7);
-    pdf.text('PARTICULAR   = 2', fbX-45, fbY+11.6);
-    y += 7;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(6);
+    pdf.text('FISCAL O', fbX-33, fbY+3);
+    pdf.text('MUNICIPAL  = 1', fbX-33, fbY+6.4);
+    pdf.text('PARTICULAR = 2', fbX-33, fbY+10.2);
+    y += 14;
 
     // ============ A. INDIVIDUALIZACIÓN DEL ESTABLECIMIENTO ============
     pdf.setFont('helvetica','bold'); pdf.setFontSize(9);
