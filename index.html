@@ -5755,7 +5755,7 @@
       pdf.line(L, y+1.4, R, y+1.4);
       y += 5;
     }
-    y += 4;
+    y += 8;
 
     // Firma y timbre — Rector o representante (encabezado y pie estáticos,
     // como en el original; el nombre capturado se escribe sobre la línea).
@@ -5862,13 +5862,6 @@
       if(ch!==' ') pdf.text(ch, L+sidebarW/2, letterY, { align:'center' });
       letterY += letterH;
     }
-    y = dBottom + 5;
-
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(6.5);
-    pdf.setTextColor(120,120,120);
-    pdf.text('Alumno(a): '+(nombreCompleto||rec.nombreAlumno||'—')+' — Curso: '+(rec.curso||'—')+' — Registrado por '+(rec.creadoPor||'—'), L, y);
-    pdf.setTextColor(0,0,0);
-
     const nombreArchivo = (nombreCompleto||rec.nombreAlumno||'alumno').trim().replace(/\s+/g,'_').replace(/[^\p{L}\p{N}_]+/gu,'');
     pdf.save(`Accidente_${String(rec.folio).padStart(5,'0')}_${nombreArchivo}.pdf`);
   }
