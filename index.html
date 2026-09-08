@@ -5766,7 +5766,10 @@
     y += 19;
 
     // ============ D. NATURALEZA Y CONSECUENCIA DEL ACCIDENTE (recuadro con franja lateral) ============
-    const dTop = y - 5;
+    // dTop deja espacio suficiente arriba del texto del título para que el
+    // casillero "CODIGO / S S / ESTABLEC." quede DENTRO del recuadro (no
+    // asomado por encima de su borde superior, como en el original).
+    const dTop = y - 6;
     const sidebarW = 6.5;
     const bodyL = L + sidebarW;
 
@@ -5774,25 +5777,28 @@
     pdf.text('D. NATURALEZA Y CONSECUENCIA DEL ACCIDENTE', L+2, y);
 
     // "CODIGO  S S – ESTABLEC." — casillero administrativo decorativo, igual
-    // que en el original (no se captura, es de uso interno del Ministerio).
+    // que en el original (no se captura, es de uso interno del Ministerio),
+    // ubicado dentro de la misma franja del título (posicionado desde dTop).
     const codW = W*0.28, codX = R-codW;
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(6);
-    pdf.text('CODIGO', codX, y-1.5);
-    caja(codX+15, y-6.6, 5, 5.6, '', 7);
-    caja(codX+20, y-6.6, 5, 5.6, '', 7);
-    pdf.text('S', codX+17.5, y-8, { align:'center' });
-    pdf.text('S', codX+22.5, y-8, { align:'center' });
-    pdf.setFont('helvetica','bold'); pdf.text('–', codX+27, y-1.5);
-    caja(codX+30, y-6.6, 6, 5.6, '', 7);
-    caja(codX+36, y-6.6, 6, 5.6, '', 7);
-    caja(codX+42, y-6.6, 6, 5.6, '', 7);
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(6);
-    pdf.text('ESTABLEC.', codX+39, y-8, { align:'center' });
-    y += 3;
-    pdf.setLineWidth(0.3);
-    pdf.line(L, y, R, y);
-    const headerLineY = y;
-    y += 8.7;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(5.5);
+    pdf.text('S', codX+15.75, dTop+2.4, { align:'center' });
+    pdf.text('S', codX+20.25, dTop+2.4, { align:'center' });
+    pdf.text('ESTABLEC.', codX+36.5, dTop+2.4, { align:'center' });
+    caja(codX+13.5, dTop+2.8, 4.5, 4.3, '', 6);
+    caja(codX+18, dTop+2.8, 4.5, 4.3, '', 6);
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(6);
+    pdf.text('–', codX+23.7, dTop+5.6);
+    caja(codX+26, dTop+2.8, 5, 4.3, '', 6);
+    caja(codX+31, dTop+2.8, 5, 4.3, '', 6);
+    caja(codX+36, dTop+2.8, 5, 4.3, '', 6);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(5.5);
+    pdf.text('CODIGO', codX, dTop+5.6);
+
+    // No se dibuja una línea aparte bajo el título: igual al original, el
+    // límite entre la franja del título y "ESTABLECIMIENTO ASISTENCIAL" es
+    // solo la propia línea de ese campo (más abajo).
+    const headerLineY = dTop + 8.7;
+    y = headerLineY;
 
     // Cada campo dibuja su única línea (igual al original: no hay una línea
     // aparte "separadora" además de la línea donde se escribe cada dato).
