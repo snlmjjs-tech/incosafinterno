@@ -1690,6 +1690,10 @@
         <form id="accForm">
           <div class="field full"><label style="font-size:13px;color:var(--navy);">A. Individualización del establecimiento y del alumno(a)</label></div>
           <div class="field">
+            <label for="acc-folio">N° (folio)</label>
+            <input type="number" id="acc-folio" min="0" step="1">
+          </div>
+          <div class="field">
             <label for="acc-establecimiento">Establecimiento</label>
             <input type="text" id="acc-establecimiento" value="I. Comercial Alberto Valenzuela Llanos" required>
           </div>
@@ -2481,6 +2485,8 @@
   let atAlumnoCursoMap = {};
   let accNombreCursoMap = {};
   let accidentes = [];
+  // -1 = todavía no se conoce ningún folio usado (el campo N° sugiere 0).
+  let accUltimoFolio = -1;
   let retiroAsistencias = [];
   let retiroInspLog = [];
   let retiroAccessKey = 'INCOSAF';
@@ -5323,14 +5329,20 @@
   function accidentesDelAnio(){
     return accidentes.filter(a=>String(a.anio)===String(anioSelect.value));
   }
-  async function nextFolioAccidente(anio){
-    const ref = doc(db, 'contadores', 'accidentes_'+anio);
-    return await runTransaction(db, async (tx)=>{
-      const snap = await tx.get(ref);
-      const siguiente = (snap.exists() ? (snap.data().ultimo||0) : 0) + 1;
-      tx.set(ref, { ultimo: siguiente }, { merge:true });
-      return siguiente;
-    });
+  // El N° (folio) se sugiere como "último folio usado + 1" — no como el
+  // máximo histórico — para que, si alguien corrige un folio a mano (p.ej.
+  // cambia el N°7 por el N°3 porque se equivocó), el siguiente sugerido sea
+  // el N°4 y no vuelva a saltar al N°8.
+  function watchAccUltimoFolio(){
+    onSnapshot(doc(db,'contadores','accidentesUltimoFolio'), snap=>{
+      accUltimoFolio = (snap.exists() && typeof snap.data().ultimo==='number') ? snap.data().ultimo : -1;
+      accSugerirFolio();
+    }, err=>console.error(err));
+  }
+  function accSugerirFolio(){
+    const el = document.getElementById('acc-folio');
+    if(!el || el.dataset.editado==='1') return;
+    el.value = accUltimoFolio + 1;
   }
 
   // ---------- Accidente escolar: autocompletado desde la base de matrícula ----------
@@ -5351,6 +5363,9 @@
     });
     datalist.innerHTML = nombres.map(n=>`<option value="${escapeHtml(n)}">`).join('');
   }
+  document.getElementById('acc-folio').addEventListener('input', ()=>{
+    document.getElementById('acc-folio').dataset.editado = '1';
+  });
   document.getElementById('acc-curso').addEventListener('input', accDatalistBuild);
   document.getElementById('acc-alumno').addEventListener('input', ()=>{
     const alumnoInput = document.getElementById('acc-alumno');
@@ -5404,6 +5419,8 @@
     document.getElementById('acc-comuna').value = 'San Fernando';
     document.getElementById('acc-fecha-registro').valueAsDate = new Date();
     document.getElementById('acc-dia-semana').value = '';
+    delete document.getElementById('acc-folio').dataset.editado;
+    accSugerirFolio();
     accActualizarTestigosVisibilidad();
   }
   accLimpiarFormulario();
@@ -5412,6 +5429,11 @@
 
   document.getElementById('accForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
+    const folio = parseInt(document.getElementById('acc-folio').value, 10);
+    if(!Number.isInteger(folio) || folio < 0){
+      showToast('Ingrese un N° (folio) válido.');
+      return;
+    }
     const anio = anioSelect.value;
     const nombreAlumno = document.getElementById('acc-alumno').value.trim();
     const rec = {
@@ -5459,10 +5481,10 @@
       creadoPor: currentUserName,
       creadoEn: serverTimestamp()
     };
+    rec.folio = folio;
     try{
-      const folio = await nextFolioAccidente(anio);
-      rec.folio = folio;
       await addDoc(collection(db,'accidentesEscolares'), rec);
+      await setDoc(doc(db,'contadores','accidentesUltimoFolio'), { ultimo: folio }, { merge:true });
       await logAudit('Registró declaración de accidente escolar', { nombre: nombreAlumno, curso: rec.curso, anio });
       buildAccidentePDF(rec);
       accLimpiarFormulario();
@@ -5601,10 +5623,13 @@
     pdf.setFont('helvetica','normal'); pdf.setFontSize(6.8);
     pdf.text('Antes de registrar los datos lea las instrucciones al reverso', bannerX, y);
 
-    // Recuadro "FISCAL O MUNICIPAL=1 / PARTICULAR=2" (decorativo, arriba a la
-    // derecha, igual al formulario — esta intranet no distingue esa clasificación).
+    // Recuadro "FISCAL O MUNICIPAL=1 / PARTICULAR=2" (arriba a la derecha,
+    // igual al formulario). El establecimiento siempre imprime "0" ahí (no
+    // aplica ninguna de las dos categorías) y no se edita desde el formulario.
     const fbW = 8, fbH = 11, fbX = R-fbW, fbY = y-1.5;
     pdf.setLineWidth(0.25); pdf.rect(fbX, fbY, fbW, fbH);
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(8);
+    pdf.text('0', fbX+fbW/2, fbY+fbH/2+1.3, { align:'center' });
     pdf.setFont('helvetica','normal'); pdf.setFontSize(6);
     pdf.text('FISCAL O', fbX-33, fbY+3);
     pdf.text('MUNICIPAL  = 1', fbX-33, fbY+6.4);
@@ -6901,7 +6926,7 @@
     retiro: [watchRetiros, watchRetiroAsistencias, watchRetiroConfig, watchRetiroInspLog],
     atencion: [watchAtenciones, watchAtencionConfig],
     cartas: [watchCartas, watchCierresCartas],
-    accidente: [watchAccidentes],
+    accidente: [watchAccidentes, watchAccUltimoFolio],
     asistencia: [watchAsisRegistros, watchAsisRosterEventos, watchAsisCursosDesbloqueados, watchAsisConfig, watchAsisAniosCerrados, watchAsisRevisados],
   };
   const TAB_GRUPOS = {
