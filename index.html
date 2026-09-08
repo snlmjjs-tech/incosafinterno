@@ -5584,8 +5584,10 @@
     const bannerX = L + (W-bannerW)/2;
 
     // ---- Logo "Gobierno de Chile" (escudo + texto) — imagen real, chico y
-    // en la esquina superior izquierda, igual al formulario oficial ----
-    const logoW = 32, logoH = logoW * (ACC_LOGO_H/ACC_LOGO_W);
+    // en la esquina superior izquierda, igual al formulario oficial. Se
+    // acota el ancho para que no tope con el título (que arranca en
+    // bannerX), dejando un respiro entre el logo y el título. ----
+    const logoW = Math.min(26, (bannerX - L) - 4), logoH = logoW * (ACC_LOGO_H/ACC_LOGO_W);
     try{ pdf.addImage(ACC_LOGO_DATA_URL, 'PNG', L, y, logoW, logoH); }catch(e){}
     y += bannerH + 7;
 
