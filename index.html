@@ -5569,19 +5569,26 @@
       return yy + opciones.length*3.3;
     }
 
-    // ---- Banda "GOBIERNO DE CHILE" ----
+    // ---- Banda "GOBIERNO DE CHILE" (degradado azul -> rojo, estrella al centro) ----
     const bannerH = 9;
-    const bannerSplit = L + W*0.6;
-    pdf.setFillColor(21,58,120);
-    pdf.rect(L, y, bannerSplit-L, bannerH, 'F');
-    pdf.setFillColor(200,32,44);
-    pdf.rect(bannerSplit, y, R-bannerSplit, bannerH, 'F');
-    estrella(bannerSplit, y+bannerH/2, 3);
+    const bannerMid = L + W/2;
+    const azul = [27,102,180], rojo = [205,32,49];
+    const franjas = 90;
+    for(let i=0;i<franjas;i++){
+      const t = i/(franjas-1);
+      const rC = Math.round(azul[0]+(rojo[0]-azul[0])*t);
+      const gC = Math.round(azul[1]+(rojo[1]-azul[1])*t);
+      const bC = Math.round(azul[2]+(rojo[2]-azul[2])*t);
+      pdf.setFillColor(rC, gC, bC);
+      const fx = L + (W/franjas)*i;
+      pdf.rect(fx, y, W/franjas+0.3, bannerH, 'F');
+    }
+    estrella(bannerMid, y+bannerH/2, 3.4);
     pdf.setTextColor(255,255,255);
     pdf.setFont('helvetica','bold'); pdf.setFontSize(10);
     pdf.text('GOBIERNO DE CHILE', L+5, y+bannerH/2+1.2);
-    pdf.setFontSize(8.5);
-    pdf.text('TRABAJANDO PARA USTED', bannerSplit+6, y+bannerH/2+1.2);
+    pdf.setFont('helvetica','bolditalic'); pdf.setFontSize(8.5);
+    pdf.text('TRABAJANDO PARA USTED', bannerMid+7, y+bannerH/2+1.2);
     pdf.setTextColor(0,0,0);
     y += bannerH + 8;
 
