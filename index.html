@@ -5571,9 +5571,9 @@
       opciones.forEach(([texto, codigo], i)=>{
         const marcada = codigo!=='' && seleccion===codigo;
         pdf.setFont('helvetica', marcada ? 'bold' : 'normal');
-        pdf.text((marcada?'> ':'   ')+texto+(codigo!==''?(' = '+codigo):''), x, yy+i*3.0);
+        pdf.text((marcada?'> ':'   ')+texto+(codigo!==''?(' = '+codigo):''), x, yy+i*2.85);
       });
-      return yy + opciones.length*3.0;
+      return yy + opciones.length*2.85;
     }
 
     // "bannerW/H/X" ya no dibujan una banda ancha: se mantienen solo como
@@ -5792,16 +5792,14 @@
     pdf.setLineWidth(0.3);
     pdf.line(L, y, R, y);
     const headerLineY = y;
-    y += 5;
+    y += 8.7;
 
+    // Cada campo dibuja su única línea (igual al original: no hay una línea
+    // aparte "separadora" además de la línea donde se escribe cada dato).
     linea(bodyL, y, W-sidebarW-2, 'ESTABLECIMIENTO ASISTENCIAL', rec.estabAsistencial);
-    y += 5;
-    pdf.setLineWidth(0.2); pdf.line(bodyL, y, R, y);
-    y += 5;
+    y += 13.9;
     linea(bodyL, y, W-sidebarW-2, 'DIAGNOSTICO MEDICO', rec.diagnostico);
-    y += 6;
-    pdf.setLineWidth(0.2); pdf.line(bodyL, y, R, y);
-    y += 7;
+    y += 13.7;
 
     linea(bodyL, y, 58, 'PARTE DEL CUERPO AFECTADA', rec.parteCuerpo);
     pdf.setFont('helvetica','normal'); pdf.setFontSize(5.8);
@@ -5818,9 +5816,7 @@
     pdf.setFont('helvetica','normal'); pdf.setFontSize(5.8);
     pdf.text('TOTAL DIAS INCAP.', bodyL+138, y-8.2);
     caja(bodyL+138, y-5.6, 13, 5.6, rec.diasIncap?String(rec.diasIncap):'', 7.5);
-    y += 6;
-    pdf.setLineWidth(0.2); pdf.line(bodyL, y, R, y);
-    y += 5;
+    y += 8;
 
     pdf.setFont('helvetica','normal'); pdf.setFontSize(6.2);
     pdf.text('TIPO DE INCAPACIDAD', bodyL, y);
@@ -5839,10 +5835,10 @@
     pdf.text('AÑO', bodyL+117.5, y+7.8, { align:'center' });
     pdf.text('MES', bodyL+131.5, y+7.8, { align:'center' });
     pdf.text('DIA', bodyL+144.5, y+7.8, { align:'center' });
-    y = yIncapEnd + 3;
+    y = yIncapEnd + 2;
 
     linea(R-70, y, 70, 'FIRMA DEL ESTADISTICO', rec.estadistico);
-    y += 4;
+    y += 3;
 
     // Recuadro exterior de la sección D y franja lateral "SOLO ESTABLECIMIENTO
     // ASISTENCIAL" (letras apiladas verticalmente, igual criterio que el texto
