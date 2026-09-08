@@ -195,7 +195,7 @@
     margin:0 auto;
     display:flex;
     gap:2px;
-    padding:0 28px;
+    padding:0 12px;
     overflow-x:auto;
   }
   nav.tabs button{
@@ -234,15 +234,15 @@
   /* Seleccionado por #id para ganar siempre a "nav.tabs button" /
      "nav.tabs button:hover" (que están pensadas para el fondo azul oscuro
      del menú superior, no para este menú de fondo blanco). */
-  #reportesMenu button{
+  #reportesMenu button, #documentosMenu button{
     color:var(--ink-soft) !important;
     text-align:left;
     white-space:normal;
     border-radius:6px;
     border-bottom:none;
   }
-  #reportesMenu button:hover{color:var(--navy) !important;background:rgba(14,14,92,.06);}
-  #reportesMenu button.active{
+  #reportesMenu button:hover, #documentosMenu button:hover{color:var(--navy) !important;background:rgba(14,14,92,.06);}
+  #reportesMenu button.active, #documentosMenu button.active{
     color:var(--navy-deep) !important;
     background:rgba(242,193,24,.14);
     border-bottom:none;
@@ -317,7 +317,7 @@
   .card + .card{margin-top:18px;}
 
   /* ===== Form ===== */
-  form#suspForm, form#retiroForm{
+  form#suspForm, form#retiroForm, form#accForm{
     display:grid;
     grid-template-columns:repeat(2,1fr);
     gap:16px 20px;
@@ -615,7 +615,7 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
   @media (max-width:720px){
-    form#suspForm, form#retiroForm{grid-template-columns:1fr;}
+    form#suspForm, form#retiroForm, form#accForm{grid-template-columns:1fr;}
     .brand-title{font-size:17px;}
     .brand-sub{font-size:11px;}
   }
@@ -816,7 +816,13 @@
         <button data-tab="auditoria">Auditoría</button>
       </div>
     </div>
-    <button data-tab="citacion">Carta de citación</button>
+    <div class="tabs-dropdown">
+      <button type="button" class="tabs-dropdown-toggle" id="documentosToggleBtn">Trámites ▾</button>
+      <div class="tabs-dropdown-menu" id="documentosMenu">
+        <button data-tab="citacion">Carta de citación</button>
+        <button data-tab="accidente">Accidente Escolar</button>
+      </div>
+    </div>
     <button data-tab="retiro">Retiro de estudiantes</button>
     <button data-tab="atencion">Atención a la comunidad</button>
     <button data-tab="cartas">Compromiso y Condicionalidad</button>
@@ -1668,6 +1674,245 @@
     </div>
   </section>
 
+  <!-- ===================== ACCIDENTE ESCOLAR ===================== -->
+  <section class="panel" id="panel-accidente">
+    <h2 class="section-title">Accidente Escolar <span class="tag">Declaración individual</span></h2>
+    <p class="section-desc">Complete la Declaración Individual de Accidente Escolar (Seguro Escolar) y genere el documento en PDF, igual que el formulario oficial.</p>
+
+    <div class="subtabs no-print">
+      <button class="subtab-btn active" data-subtab="accidente-nuevo">Nuevo registro</button>
+      <button class="subtab-btn" data-subtab="accidente-historial">Historial</button>
+    </div>
+
+    <!-- Nuevo registro -->
+    <div id="sub-accidente-nuevo">
+      <div class="card">
+        <form id="accForm">
+          <div class="field full"><label style="font-size:13px;color:var(--navy);">A. Individualización del establecimiento y del alumno(a)</label></div>
+          <div class="field">
+            <label for="acc-establecimiento">Establecimiento</label>
+            <input type="text" id="acc-establecimiento" value="I. Comercial Alberto Valenzuela Llanos" required>
+          </div>
+          <div class="field">
+            <label for="acc-ciudad">Ciudad</label>
+            <input type="text" id="acc-ciudad" value="San Fernando">
+          </div>
+          <div class="field">
+            <label for="acc-comuna">Comuna</label>
+            <input type="text" id="acc-comuna" value="San Fernando">
+          </div>
+          <div class="field">
+            <label for="acc-alumno">Nombre del alumno(a)</label>
+            <input type="text" id="acc-alumno" placeholder="Nombre y apellidos" list="acc-alumno-list" required>
+            <datalist id="acc-alumno-list"></datalist>
+          </div>
+          <div class="field">
+            <label for="acc-curso">Curso</label>
+            <input type="text" id="acc-curso" placeholder="Ej: 1° Medio A" required>
+          </div>
+          <div class="field">
+            <label for="acc-horario">Horario / Jornada</label>
+            <select id="acc-horario">
+              <option value="Mañana">Mañana</option>
+              <option value="Tarde">Tarde</option>
+              <option value="Jornada completa">Jornada completa</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="acc-fecha-registro">Fecha de registro de los datos</label>
+            <input type="date" id="acc-fecha-registro" required>
+          </div>
+          <div class="field">
+            <label for="acc-run">RUN del alumno(a)</label>
+            <input type="text" id="acc-run" placeholder="Ej: 21.345.678-9">
+          </div>
+          <div class="field">
+            <label for="acc-appaterno">Apellido paterno</label>
+            <input type="text" id="acc-appaterno">
+          </div>
+          <div class="field">
+            <label for="acc-apmaterno">Apellido materno</label>
+            <input type="text" id="acc-apmaterno">
+          </div>
+          <div class="field">
+            <label for="acc-nombres">Nombres</label>
+            <input type="text" id="acc-nombres">
+          </div>
+          <div class="field">
+            <label for="acc-sexo">Sexo</label>
+            <select id="acc-sexo">
+              <option value="">Seleccione…</option>
+              <option value="M">Masculino</option>
+              <option value="F">Femenino</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="acc-fecha-nac">Fecha de nacimiento</label>
+            <input type="date" id="acc-fecha-nac">
+          </div>
+          <div class="field">
+            <label for="acc-edad">Edad</label>
+            <input type="number" id="acc-edad" min="0" max="99">
+          </div>
+          <div class="field full"><label style="font-size:12px;color:var(--ink-soft);">Residencia habitual</label></div>
+          <div class="field">
+            <label for="acc-resid-calle">Calle</label>
+            <input type="text" id="acc-resid-calle">
+          </div>
+          <div class="field">
+            <label for="acc-resid-numero">Número</label>
+            <input type="text" id="acc-resid-numero">
+          </div>
+          <div class="field">
+            <label for="acc-resid-poblacion">Población / Villa</label>
+            <input type="text" id="acc-resid-poblacion">
+          </div>
+          <div class="field">
+            <label for="acc-resid-comuna">Comuna</label>
+            <input type="text" id="acc-resid-comuna">
+          </div>
+          <div class="field">
+            <label for="acc-resid-ciudad">Ciudad</label>
+            <input type="text" id="acc-resid-ciudad">
+          </div>
+
+          <div class="field full"><label style="font-size:13px;color:var(--navy);margin-top:8px;">C. Informe sobre el accidente</label></div>
+          <div class="field">
+            <label for="acc-fecha-accidente">Fecha del accidente</label>
+            <input type="date" id="acc-fecha-accidente" required>
+          </div>
+          <div class="field">
+            <label for="acc-hora-accidente">Hora del accidente</label>
+            <input type="time" id="acc-hora-accidente">
+          </div>
+          <div class="field">
+            <label>Día del accidente</label>
+            <input type="text" id="acc-dia-semana" readonly placeholder="Se calcula según la fecha">
+          </div>
+          <div class="field">
+            <label for="acc-tipo">Tipo de accidente</label>
+            <select id="acc-tipo">
+              <option value="Escuela">En la escuela</option>
+              <option value="Trayecto">De trayecto</option>
+            </select>
+          </div>
+          <div class="field full" id="acc-testigos-wrap">
+            <label style="font-size:12px;color:var(--ink-soft);">Testigos (en caso de trayecto)</label>
+            <div class="grid-2">
+              <div class="field">
+                <input type="text" id="acc-testigo1-nombre" placeholder="a) Nombre y apellido">
+                <input type="text" id="acc-testigo1-cedula" placeholder="Cédula de identidad" style="margin-top:6px;">
+              </div>
+              <div class="field">
+                <input type="text" id="acc-testigo2-nombre" placeholder="b) Nombre y apellido">
+                <input type="text" id="acc-testigo2-cedula" placeholder="Cédula de identidad" style="margin-top:6px;">
+              </div>
+            </div>
+          </div>
+          <div class="field full">
+            <label for="acc-circunstancia">Circunstancia del accidente (describa cómo ocurrió — causal)</label>
+            <textarea id="acc-circunstancia" placeholder="Describa cómo ocurrió el accidente"></textarea>
+          </div>
+          <div class="field">
+            <label for="acc-rector">Rector(a) o representante (firma)</label>
+            <input type="text" id="acc-rector" placeholder="Nombre de quien firma">
+          </div>
+
+          <div class="field full"><label style="font-size:13px;color:var(--navy);margin-top:8px;">D. Naturaleza y consecuencia del accidente <span style="font-weight:400;color:var(--ink-soft);">(solo establecimiento asistencial, si se conoce)</span></label></div>
+          <div class="field">
+            <label for="acc-estab-asistencial">Establecimiento asistencial</label>
+            <input type="text" id="acc-estab-asistencial">
+          </div>
+          <div class="field">
+            <label for="acc-diagnostico">Diagnóstico médico</label>
+            <input type="text" id="acc-diagnostico">
+          </div>
+          <div class="field">
+            <label for="acc-parte-cuerpo">Parte del cuerpo afectada</label>
+            <input type="text" id="acc-parte-cuerpo">
+          </div>
+          <div class="field">
+            <label for="acc-hospitalizacion">Hospitalización</label>
+            <select id="acc-hospitalizacion">
+              <option value="">—</option>
+              <option value="Sí">Sí</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="acc-dias-hosp">Total días de hospitalización</label>
+            <input type="number" id="acc-dias-hosp" min="0">
+          </div>
+          <div class="field">
+            <label for="acc-incapacidad">Incapacidad</label>
+            <select id="acc-incapacidad">
+              <option value="">—</option>
+              <option value="Sí">Sí</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="acc-dias-incap">Total días de incapacidad</label>
+            <input type="number" id="acc-dias-incap" min="0">
+          </div>
+          <div class="field">
+            <label for="acc-tipo-incapacidad">Tipo de incapacidad</label>
+            <select id="acc-tipo-incapacidad">
+              <option value="">—</option>
+              <option>Leve</option>
+              <option>Temporal</option>
+              <option>Invalidez parcial</option>
+              <option>Invalidez total</option>
+              <option>Gran invalidez</option>
+              <option>Muerte</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="acc-causa-cierre">Causa de cierre del caso</label>
+            <select id="acc-causa-cierre">
+              <option value="">—</option>
+              <option>Alta médica</option>
+              <option>Invalidez</option>
+              <option>Abandono de tratamiento</option>
+              <option>Muerte</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="acc-fecha-cierre">Fecha de cierre del caso</label>
+            <input type="date" id="acc-fecha-cierre">
+          </div>
+          <div class="field">
+            <label for="acc-estadistico">Firma del estadístico</label>
+            <input type="text" id="acc-estadistico" placeholder="Nombre de quien firma">
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" id="accResetBtn">Limpiar formulario</button>
+            <button type="submit" class="btn btn-primary">Registrar y generar PDF</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Historial -->
+    <div id="sub-accidente-historial" style="display:none;">
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>N°</th><th>Fecha</th><th>Alumno</th><th>Curso</th><th>Tipo</th><th></th></tr>
+            </thead>
+            <tbody id="accHistBody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="accHistEmpty" style="display:none;">
+          <span class="glyph">🩹</span>
+          Aún no hay declaraciones de accidente escolar registradas este año.
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== ASISTENCIA (ATRASOS E INASISTENCIAS) ===================== -->
   <section class="panel" id="panel-asistencia">
     <h2 class="section-title">Asistencia <span class="tag">Control de atrasos e inasistencias</span></h2>
@@ -2234,6 +2479,8 @@
   let retiros = [];
   let retiroNombreCursoMap = {};
   let atAlumnoCursoMap = {};
+  let accNombreCursoMap = {};
+  let accidentes = [];
   let retiroAsistencias = [];
   let retiroInspLog = [];
   let retiroAccessKey = 'INCOSAF';
@@ -2554,6 +2801,7 @@
       if(asisAdminUnlocked) asisPoblarSelectsAdmin();
       retiroDatalistBuild();
       atDatalistBuild();
+      accDatalistBuild();
     }, err=>console.error(err));
   }
   function watchAsisCursosDesbloqueados(){
@@ -3813,6 +4061,8 @@
 
   const REPORTES_GRUPO = ['listado','alumno','curso','establecimiento','auditoria'];
   const { toggleBtn: reportesToggleBtn, menu: reportesMenu } = initTabsDropdown('reportesToggleBtn','reportesMenu');
+  const DOCUMENTOS_GRUPO = ['citacion','accidente'];
+  const { toggleBtn: documentosToggleBtn, menu: documentosMenu } = initTabsDropdown('documentosToggleBtn','documentosMenu');
 
   document.querySelectorAll('nav.tabs button[data-tab]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -3821,7 +4071,9 @@
       btn.classList.add('active');
       document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
       if(REPORTES_GRUPO.includes(btn.dataset.tab)) reportesToggleBtn.classList.add('active');
+      if(DOCUMENTOS_GRUPO.includes(btn.dataset.tab)) documentosToggleBtn.classList.add('active');
       reportesMenu.classList.remove('open');
+      documentosMenu.classList.remove('open');
     });
   });
 
@@ -5057,6 +5309,302 @@
     });
   });
 
+  // ---------- Accidente escolar (Firestore, en tiempo real) ----------
+  function watchAccidentes(){
+    const q = query(collection(db,'accidentesEscolares'), orderBy('creadoEn','desc'));
+    onSnapshot(q, snap=>{
+      accidentes = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      renderAccidenteHistorial();
+    }, err=>{
+      console.error(err);
+      showToast('No se pudo conectar con los registros de accidentes.');
+    });
+  }
+  function accidentesDelAnio(){
+    return accidentes.filter(a=>String(a.anio)===String(anioSelect.value));
+  }
+  async function nextFolioAccidente(anio){
+    const ref = doc(db, 'contadores', 'accidentes_'+anio);
+    return await runTransaction(db, async (tx)=>{
+      const snap = await tx.get(ref);
+      const siguiente = (snap.exists() ? (snap.data().ultimo||0) : 0) + 1;
+      tx.set(ref, { ultimo: siguiente }, { merge:true });
+      return siguiente;
+    });
+  }
+
+  // ---------- Accidente escolar: autocompletado desde la base de matrícula ----------
+  // Mismo mecanismo y misma base de datos que en Retiro de estudiantes.
+  function accDatalistBuild(){
+    const datalist = document.getElementById('acc-alumno-list');
+    const cursoInput = document.getElementById('acc-curso');
+    if(!datalist || !cursoInput) return;
+    const roster = asisGetRoster();
+    const cursoAsis = retiroCursoTextoAAsis(cursoInput.value);
+    accNombreCursoMap = {};
+    const nombres = [];
+    (cursoAsis ? [cursoAsis] : ASIS_CURSOS).forEach(c=>{
+      (roster[c]||[]).forEach(n=>{
+        accNombreCursoMap[n] = c;
+        nombres.push(n);
+      });
+    });
+    datalist.innerHTML = nombres.map(n=>`<option value="${escapeHtml(n)}">`).join('');
+  }
+  document.getElementById('acc-curso').addEventListener('input', accDatalistBuild);
+  document.getElementById('acc-alumno').addEventListener('input', ()=>{
+    const alumnoInput = document.getElementById('acc-alumno');
+    const cursoInput = document.getElementById('acc-curso');
+    const nombre = alumnoInput.value.trim().toUpperCase();
+    const cursoDelAlumno = accNombreCursoMap[nombre];
+    if(cursoDelAlumno && !retiroCursoTextoAAsis(cursoInput.value)){
+      cursoInput.value = asisCursoATextoRetiro(cursoDelAlumno);
+      accDatalistBuild();
+    }
+  });
+
+  const DIAS_SEMANA_ACC = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  document.getElementById('acc-fecha-accidente').addEventListener('change', ()=>{
+    const val = document.getElementById('acc-fecha-accidente').value;
+    const diaEl = document.getElementById('acc-dia-semana');
+    diaEl.value = val ? DIAS_SEMANA_ACC[new Date(val+'T00:00:00').getDay()] : '';
+  });
+  document.getElementById('acc-fecha-nac').addEventListener('change', ()=>{
+    const val = document.getElementById('acc-fecha-nac').value;
+    if(!val) return;
+    const nac = new Date(val+'T00:00:00');
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - nac.getFullYear();
+    const m = hoy.getMonth() - nac.getMonth();
+    if(m < 0 || (m===0 && hoy.getDate() < nac.getDate())) edad--;
+    document.getElementById('acc-edad').value = edad >= 0 ? edad : '';
+  });
+  function accActualizarTestigosVisibilidad(){
+    document.getElementById('acc-testigos-wrap').style.display =
+      (document.getElementById('acc-tipo').value==='Trayecto') ? '' : 'none';
+  }
+  document.getElementById('acc-tipo').addEventListener('change', accActualizarTestigosVisibilidad);
+
+  function accLimpiarFormulario(){
+    document.getElementById('accForm').reset();
+    document.getElementById('acc-establecimiento').value = 'I. Comercial Alberto Valenzuela Llanos';
+    document.getElementById('acc-ciudad').value = 'San Fernando';
+    document.getElementById('acc-comuna').value = 'San Fernando';
+    document.getElementById('acc-fecha-registro').valueAsDate = new Date();
+    document.getElementById('acc-dia-semana').value = '';
+    accActualizarTestigosVisibilidad();
+  }
+  accLimpiarFormulario();
+
+  document.getElementById('accResetBtn').addEventListener('click', accLimpiarFormulario);
+
+  document.getElementById('accForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const anio = anioSelect.value;
+    const nombreAlumno = document.getElementById('acc-alumno').value.trim();
+    const rec = {
+      anio,
+      establecimiento: document.getElementById('acc-establecimiento').value.trim(),
+      ciudad: document.getElementById('acc-ciudad').value.trim(),
+      comuna: document.getElementById('acc-comuna').value.trim(),
+      nombreAlumno,
+      curso: document.getElementById('acc-curso').value.trim(),
+      horario: document.getElementById('acc-horario').value,
+      fechaRegistro: document.getElementById('acc-fecha-registro').value,
+      run: document.getElementById('acc-run').value.trim(),
+      apellidoPaterno: document.getElementById('acc-appaterno').value.trim(),
+      apellidoMaterno: document.getElementById('acc-apmaterno').value.trim(),
+      nombres: document.getElementById('acc-nombres').value.trim(),
+      sexo: document.getElementById('acc-sexo').value,
+      fechaNacimiento: document.getElementById('acc-fecha-nac').value,
+      edad: document.getElementById('acc-edad').value,
+      residCalle: document.getElementById('acc-resid-calle').value.trim(),
+      residNumero: document.getElementById('acc-resid-numero').value.trim(),
+      residPoblacion: document.getElementById('acc-resid-poblacion').value.trim(),
+      residComuna: document.getElementById('acc-resid-comuna').value.trim(),
+      residCiudad: document.getElementById('acc-resid-ciudad').value.trim(),
+      fechaAccidente: document.getElementById('acc-fecha-accidente').value,
+      horaAccidente: document.getElementById('acc-hora-accidente').value,
+      diaSemana: document.getElementById('acc-dia-semana').value,
+      tipo: document.getElementById('acc-tipo').value,
+      testigo1Nombre: document.getElementById('acc-testigo1-nombre').value.trim(),
+      testigo1Cedula: document.getElementById('acc-testigo1-cedula').value.trim(),
+      testigo2Nombre: document.getElementById('acc-testigo2-nombre').value.trim(),
+      testigo2Cedula: document.getElementById('acc-testigo2-cedula').value.trim(),
+      circunstancia: document.getElementById('acc-circunstancia').value.trim(),
+      rector: document.getElementById('acc-rector').value.trim(),
+      estabAsistencial: document.getElementById('acc-estab-asistencial').value.trim(),
+      diagnostico: document.getElementById('acc-diagnostico').value.trim(),
+      parteCuerpo: document.getElementById('acc-parte-cuerpo').value.trim(),
+      hospitalizacion: document.getElementById('acc-hospitalizacion').value,
+      diasHosp: document.getElementById('acc-dias-hosp').value,
+      incapacidad: document.getElementById('acc-incapacidad').value,
+      diasIncap: document.getElementById('acc-dias-incap').value,
+      tipoIncapacidad: document.getElementById('acc-tipo-incapacidad').value,
+      causaCierre: document.getElementById('acc-causa-cierre').value,
+      fechaCierre: document.getElementById('acc-fecha-cierre').value,
+      estadistico: document.getElementById('acc-estadistico').value.trim(),
+      creadoPor: currentUserName,
+      creadoEn: serverTimestamp()
+    };
+    try{
+      const folio = await nextFolioAccidente(anio);
+      rec.folio = folio;
+      await addDoc(collection(db,'accidentesEscolares'), rec);
+      await logAudit('Registró declaración de accidente escolar', { nombre: nombreAlumno, curso: rec.curso, anio });
+      buildAccidentePDF(rec);
+      accLimpiarFormulario();
+      showToast('✓ Declaración registrada. Folio N° '+String(folio).padStart(5,'0'));
+    }catch(err){
+      console.error(err);
+      showToast('No se pudo registrar la declaración. Intente nuevamente.');
+    }
+  });
+
+  function renderAccidenteHistorial(){
+    const body = document.getElementById('accHistBody');
+    const empty = document.getElementById('accHistEmpty');
+    if(!body) return;
+    const rows = accidentesDelAnio().slice().sort((a,b)=>(b.folio||0)-(a.folio||0));
+    if(rows.length===0){
+      body.innerHTML = '';
+      empty.style.display = 'block';
+    }else{
+      empty.style.display = 'none';
+      body.innerHTML = rows.map(r=>{
+        const nombre = [r.apellidoPaterno, r.apellidoMaterno, r.nombres].filter(Boolean).join(' ') || r.nombreAlumno || '—';
+        return `
+        <tr>
+          <td>${String(r.folio||0).padStart(5,'0')}</td>
+          <td>${r.fechaAccidente ? fmtDate(r.fechaAccidente) : '—'}</td>
+          <td>${escapeHtml(nombre)}</td>
+          <td>${escapeHtml(r.curso||'—')}</td>
+          <td>${r.tipo==='Trayecto' ? 'De trayecto' : 'En la escuela'}</td>
+          <td class="no-print"><button type="button" class="icon-btn" title="Descargar PDF" data-acc-pdf="${r.id}">📄</button></td>
+        </tr>
+      `;
+      }).join('');
+    }
+  }
+  document.getElementById('accHistBody').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-acc-pdf]');
+    if(!btn) return;
+    const rec = accidentes.find(a=>a.id===btn.dataset.accPdf);
+    if(rec) buildAccidentePDF(rec);
+  });
+
+  document.querySelectorAll('#panel-accidente .subtab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#panel-accidente .subtab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      ['accidente-nuevo','accidente-historial'].forEach(key=>{
+        document.getElementById('sub-'+key).style.display = (key===btn.dataset.subtab) ? '' : 'none';
+      });
+      if(btn.dataset.subtab==='accidente-historial') renderAccidenteHistorial();
+    });
+  });
+
+  // ---------- Accidente escolar: PDF de la declaración ----------
+  function buildAccidentePDF(rec){
+    const pdf = new jsPDF({ unit:'mm', format:'letter' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const marginL = 15, marginR = pageW - 15;
+    const crest = getCrestDataUrl();
+    if(crest){ try{ pdf.addImage(crest, 'PNG', marginL, 10, 16, 22); }catch(e){} }
+
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(13);
+    pdf.text('I. Comercial Alberto Valenzuela Llanos', pageW/2, 17, { align:'center' });
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(10);
+    pdf.text('San Fernando', pageW/2, 23, { align:'center' });
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(13);
+    pdf.text('DECLARACIÓN INDIVIDUAL DE ACCIDENTE ESCOLAR', pageW/2, 34, { align:'center' });
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(10.5);
+    pdf.text(`N° ${String(rec.folio).padStart(5,'0')} — Año ${rec.anio}`, pageW/2, 40, { align:'center' });
+
+    let y = 50;
+    const nombreCompleto = [rec.apellidoPaterno, rec.apellidoMaterno, rec.nombres].filter(Boolean).join(' ') || rec.nombreAlumno || '—';
+
+    function seccion(titulo){
+      pdf.setFillColor(14,14,92);
+      pdf.rect(marginL, y, marginR-marginL, 6, 'F');
+      pdf.setTextColor(255,255,255);
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(9.5);
+      pdf.text(titulo, marginL+2, y+4.3);
+      pdf.setTextColor(0,0,0);
+      y += 10;
+    }
+    function filas(pares){
+      pdf.setFontSize(9);
+      const colW = (marginR-marginL)/2;
+      for(let i=0;i<pares.length;i+=2){
+        const [l1,v1] = pares[i];
+        pdf.setFont('helvetica','bold'); pdf.text(l1+':', marginL, y);
+        pdf.setFont('helvetica','normal'); pdf.text(String(v1||'—'), marginL+38, y);
+        if(pares[i+1] && pares[i+1][0]){
+          const [l2,v2] = pares[i+1];
+          pdf.setFont('helvetica','bold'); pdf.text(l2+':', marginL+colW, y);
+          pdf.setFont('helvetica','normal'); pdf.text(String(v2||'—'), marginL+colW+38, y);
+        }
+        y += 6;
+      }
+      y += 2;
+    }
+
+    seccion('A. INDIVIDUALIZACIÓN DEL ESTABLECIMIENTO Y DEL ALUMNO(A)');
+    filas([
+      ['Establecimiento', rec.establecimiento], ['Ciudad', rec.ciudad],
+      ['Comuna', rec.comuna], ['Curso', rec.curso],
+      ['Horario', rec.horario], ['Fecha de registro', rec.fechaRegistro?fmtDate(rec.fechaRegistro):'—'],
+      ['Alumno(a)', nombreCompleto], ['RUN', rec.run],
+      ['Sexo', rec.sexo==='M'?'Masculino':(rec.sexo==='F'?'Femenino':'—')], ['Fecha de nacimiento', rec.fechaNacimiento?fmtDate(rec.fechaNacimiento):'—'],
+      ['Edad', rec.edad],
+    ]);
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(8.5);
+    pdf.text('Residencia habitual:', marginL, y); y += 5;
+    filas([
+      ['Calle', rec.residCalle], ['Número', rec.residNumero],
+      ['Población/Villa', rec.residPoblacion], ['Comuna', rec.residComuna],
+      ['Ciudad', rec.residCiudad],
+    ]);
+
+    seccion('C. INFORME SOBRE EL ACCIDENTE');
+    filas([
+      ['Fecha del accidente', rec.fechaAccidente?fmtDate(rec.fechaAccidente):'—'], ['Hora', rec.horaAccidente],
+      ['Día', rec.diaSemana], ['Tipo de accidente', rec.tipo==='Trayecto'?'De trayecto':'En la escuela'],
+    ]);
+    if(rec.tipo==='Trayecto'){
+      filas([
+        ['Testigo a)', rec.testigo1Nombre], ['C. de identidad', rec.testigo1Cedula],
+        ['Testigo b)', rec.testigo2Nombre], ['C. de identidad', rec.testigo2Cedula],
+      ]);
+    }
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(9);
+    pdf.text('Circunstancia del accidente:', marginL, y); y += 5;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(9);
+    const circLines = pdf.splitTextToSize(rec.circunstancia || 'Sin detalle registrado.', marginR-marginL);
+    pdf.text(circLines, marginL, y);
+    y += 5*circLines.length + 3;
+    filas([['Rector(a) o representante (firma)', rec.rector]]);
+
+    seccion('D. NATURALEZA Y CONSECUENCIA DEL ACCIDENTE (establecimiento asistencial)');
+    filas([
+      ['Establecimiento asistencial', rec.estabAsistencial], ['Diagnóstico médico', rec.diagnostico],
+      ['Parte del cuerpo afectada', rec.parteCuerpo], ['Hospitalización', rec.hospitalizacion],
+      ['Total días hospitalización', rec.diasHosp], ['Incapacidad', rec.incapacidad],
+      ['Total días incapacidad', rec.diasIncap], ['Tipo de incapacidad', rec.tipoIncapacidad],
+      ['Causa de cierre del caso', rec.causaCierre], ['Fecha de cierre del caso', rec.fechaCierre?fmtDate(rec.fechaCierre):'—'],
+      ['Firma del estadístico', rec.estadistico],
+    ]);
+
+    pdf.setFontSize(8);
+    pdf.setTextColor(120,120,120);
+    pdf.text('Registrado por '+(rec.creadoPor||'—')+' — I. Comercial Alberto Valenzuela Llanos, San Fernando', marginL, pageH-10);
+
+    const nombreArchivo = (nombreCompleto||'alumno').trim().replace(/\s+/g,'_').replace(/[^\p{L}\p{N}_]+/gu,'');
+    pdf.save(`Accidente_${String(rec.folio).padStart(5,'0')}_${nombreArchivo}.pdf`);
+  }
+
   // ---------- Atención a la comunidad: PDF del comprobante ----------
   function buildAtencionPDF(rec){
     const pdf = new jsPDF({ unit:'mm', format:'letter' });
@@ -6090,6 +6638,7 @@
     retiro: [watchRetiros, watchRetiroAsistencias, watchRetiroConfig, watchRetiroInspLog],
     atencion: [watchAtenciones, watchAtencionConfig],
     cartas: [watchCartas, watchCierresCartas],
+    accidente: [watchAccidentes],
     asistencia: [watchAsisRegistros, watchAsisRosterEventos, watchAsisCursosDesbloqueados, watchAsisConfig, watchAsisAniosCerrados, watchAsisRevisados],
   };
   const TAB_GRUPOS = {
@@ -6099,6 +6648,7 @@
     atencion: ['atencion','asistencia'], // idem
     cartas: ['cartas'],
     auditoria: ['auditoria'],
+    accidente: ['accidente','asistencia'], // idem
     asistencia: ['asistencia'],
   };
   function gruposParaTabs(tabs){
